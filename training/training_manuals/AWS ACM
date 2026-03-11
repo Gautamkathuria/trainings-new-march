@@ -1,0 +1,16 @@
+# first go to aws certificate manager -> request a certificate -> enter domain(cloud.gautamcodebuild.in) -> create
+
+# wait for it to be issued
+
+# now go to ec2 -> launch two instance -> create nginx -> html page 
+# create sg(ab-sg) -> allow http and https from anywhere -> assign to load balancer.
+# now go to target group -> create target group -> select instance and add to target group
+
+# now go to load balancer -> create -> select alb -> select vpc -> select subnets -> select security group 
+# now select listeners -> add listener -> select https -> select certificate from ACM -> select target group
+# now select listeners -> add listener -> select http -> select redrect to https
+
+# now go to cloudflare -> add record -> cname -> name (cloud) -> target (dns name of load balancer) -> save
+
+
+

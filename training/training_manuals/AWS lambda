@@ -1,0 +1,96 @@
+ If you need to run a task only occasionally, like resizing an image when a user uploads it paying for a server to run 24/7 is a waste of money and maintenance effort.
+
+ AWS Lambda solves this by introducing serverless computing. It runs your code only when needed, scales automatically, and charges you only for the milliseconds used.
+
+ # what is lambda function?
+ The code that you want Lambda to run is known as a Lambda function.
+ A serverless compute service that runs your code automatically in response to events without managing servers.
+ You upload code → AWS runs it when triggered.
+
+# What is function?
+A Lambda Function is your code packaged and deployed to Lambda.
+
+It contains:
+Code (index.js / index.mjs)
+Runtime (Node.js, Python, etc.)
+Configuration (memory, timeout, IAM role)
+
+# what is runtime?
+The programming environment Lambda uses to execute your code.
+
+Examples:
+Node.js 18.x
+Python 3.12
+Java 17
+
+# what is handler?
+The entry point of your function.
+
+export const handler = async (event) => { }
+
+# what is Invocation?
+When Lambda executes your function, it is called an invocation.
+
+# what is Event?
+An event is the JSON data sent to Lambda when it is triggered.
+
+# 
+
+
+ =========================steps to trigger lambda function =========================
+
+ 1. create s3 bucket with default configuration
+
+ 2. now go to lambda -> create function -> name -> select node -> permissions -> Create a new role from AWS policy templates -> select name -> selact amazon s3 object read-only -> create 
+
+3. now add trigger -> select s3 -> choose bucket -> create 
+
+4. now go to code -> edit
+export const handler = async (event) => {
+  console.log("Full event:", JSON.stringify(event, null, 2));
+
+  // Check if this is an S3 event
+  if (!event.Records || event.Records.length === 0) {
+      console.log("Not an S3 event or no records found.");
+      return {
+          statusCode: 400,
+          body: "Invalid event structure"
+      };
+  }
+
+  const record = event.Records[0];
+  const bucket = record.s3.bucket.name;
+  const key = record.s3.object.key;
+
+  console.log("File uploaded:", key);
+  console.log("Bucket:", bucket);
+
+  return {
+      statusCode: 200,
+      body: "File processed successfully"
+  };
+};
+click deploy
+
+4. now go to test -> create test name
+add format test json
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "my-bucket"
+        },
+        "object": {
+          "key": "file.jpg"
+        }
+      }
+    }
+  ]
+}
+
+click test
+
+5. now upload file to s3 bucket
+
+6. now go to lambda -> monitor -> go to cloudwatch logs and see name of file uploads.

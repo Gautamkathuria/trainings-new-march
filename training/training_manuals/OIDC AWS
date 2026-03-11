@@ -1,0 +1,45 @@
+# ================create oidc in awsnwith github=================== 
+
+Iam -> identity provider -> create -> openid connect -> 
+token.actions.githubusercontent.com -> audience(sts.amazonaws.com) ->. create
+
+# now create a buclet name 
+
+# now create an IAM policy name oidc-connect
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::my-bucket-oidc2411",
+                "arn:aws:s3:::my-bucket-oidc2411/*"
+            ]
+        }
+    ]
+}",
+                "arn:aws:s3:::my-bucket-oidc2411/*"
+            ]
+        }
+    ]
+}
+
+

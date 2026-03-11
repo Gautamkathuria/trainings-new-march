@@ -1,0 +1,154 @@
+# create a cloudwatch 
+# first launch an instace and create a iam role have permission "CloudWatchAgentServerPolicy" and attach it to ec2.
+
+# now create cloudwatch dashboard if u CloudWatchAgentServerPolicy
+# create SNS topic first (give display name) (standard)
+# add subscription ur email.
+
+# create alarm of alarm -> select metrics -> instnce type -> cpu -> select sns topic -> threshold to 60 -> create
+
+# install stress 
+sudo apt install stress
+
+# to test cpu alerts
+stress --cpu 2 --timeout 300
+
+======= create alarm for disk space==============
+# install cloudwatch agent on server
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-config-wizard
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
+# now create alarm for disk space
+# go to cloudwatch -> alarm -> create alarm -> select metrics -> select cwagent -> select disk space -> select /dev/xvda1 -> select free storage space -> next -> threshold to 20% -> select sns topic -> create alarm
+# to test disk space alert
+sudo fallocate -l 15G /bigfile
+# now delete the file
+sudo rm /bigfile
+
+========= create alarm for memory usage ==============
+# go to cloudwatch -> alarm -> create alarm -> select metrics -> select cwagent -> select memory -> select % used memory -> next -> threshold to 70% -> select sns topic -> create
+# to test memory usage alert
+stress --vm 2 --vm-bytes 700M --timeout 300
+
+# clean up
+
+===== types of alarms =====
+1. metric alarm :- Triggers when one metric crosses a threshold.
+   Examples:
+CPUUtilization > 80%
+mem_used_percent > 60%
+disk_used_percent > 70%
+
+2. anomaly detection :- Uses machine learning to create a model of expected values and triggers when values deviate from the model.
+Examples:
+CPU alarm AND Memory alarm
+Disk alarm OR StatusCheckFailed alarm
+
+3. composite alarms :- Combines multiple alarms into one.
+Examples:
+Sudden CPU spike
+Unexpected drop in traffic
+
+===== alaram states =====
+1. OK :- The metric is within the defined threshold.
+2. ALARM :- The metric has crossed the defined threshold.
+3. INSUFFICIENT_DATA :- There is not enough data to determine the state of the alarm.
+
+======= download the logs ========
+Export CloudWatch Logs to S3 (Console)
+Go to AWS Console → CloudWatch → Logs → Log groups
+
+Example: /aws/ec2/mem-disk-logs
+Select the Log Group you want to export
+Click Actions → Export data to Amazon S3
+ Fill in details:
+ Time range (From → To)
+ Destination S3 bucket (must exist)
+ Prefix (optional folder in S3, e.g., ec2-logs/)
+Click Export
+After export completes, go to S3 → your bucket → download the logs.
+
+
+=============== edit custom name in cloudwathc alarm ==================
+# go to cloudwatch -> alarm -> select the alarm -> actions -> edit -> change name and description -> save changes
+# go to sns -> topics -> select the topic -> subscriptions -> select the subscription -> edit -> change the display name -> save changes
+
+
+=============== save container logs to aws cloudwatch ==================
+1. create a iam user with programmatic access and attach the policy "CloudWatchAgentServerPolicy" to the user.
+2. create access key for the user and note down the access key id and secret access key
+3. install aws cli on the server where the container is running
+4. configure aws cli with the access key id and secret access key
+aws configure
+5. create a cloudwatch log group
+
+6. now edit the docker compose file to add the following lines to the container for which you want to save logs to cloudwatch
+logging:
+   driver: awslogs
+   options:
+     awslogs-group: your-log-group-name
+     awslogs-region: your-region
+     awslogs-stream: your-stream-prefix
+7. now run docker compose up -d
+8. now the logs of the container will be saved to cloudwatch log group
+9. to view the logs go to cloudwatch -> logs -> log groups -> select your log group -> log streams -> select your log stream -> view the logs
+
+# now export the logs to s3
+go to cloudwatch -> logs -> log groups -> select your log group -> actions -> export data to amazon s3 -> fill in the details -> export
+
+# create s3 bucket if not exist
+go to s3 -> create bucket -> fill in the details -> create bucket
+#attach policy to the bucket to allow cloudwatch to write logs to s3
+go to s3 -> select your bucket -> permissions -> bucket policy -> add the following policy
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "logs.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::your-bucket-name/*"
+        }
+    ]
+}  
+
+or 
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowCloudWatchGetBucketAcl",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "logs.us-east-1.amazonaws.com"
+            },
+            "Action": "s3:GetBucketAcl",
+            "Resource": "arn:aws:s3:::mongo-logs-bucket",
+            "Condition": {
+                "StringEquals": {
+                    "aws:SourceAccount": "082447916188"
+                }
+            }
+        },
+        {
+            "Sid": "AllowCloudWatchPutObject",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "logs.us-east-1.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::mongo-logs-bucket/*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:SourceAccount": "082447916188"
+                }
+            }
+        }
+    ]
+}
+
+
+

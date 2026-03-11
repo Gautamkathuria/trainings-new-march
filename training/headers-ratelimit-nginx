@@ -1,0 +1,214 @@
+# headers in nginx:-
+headers contains information about identity info, security rules, data info, routing.
+it contains instructions, metadata and header contains short key-value information that explains who sent the request, how to handle the data, and what rules to follow.
+
+# headers :-
+# add-header = add HTTP headers to the response that Nginx sends to the client.
+
+# proxy-set-header = override HTTP headers in requests that Nginx sends to a backend server.
+# types of headers:-
+# common headers :-
+1. host = proxy_set_header Host $host; (Hey backend, the user asked for this domain)
+2. X-Real-IP =  proxy_set_header X-Real-IP $remote_addr; (This is the real IP address of the user)
+3. X-Forwarded-For = proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+( These are all the IPs the request passed through)
+4. X-Forwarded-Proto = proxy_set_header X-Forwarded-Proto $scheme;
+(The original request was HTTP or HTTPS)
+
+# Security headers (protect users) :-
+1. Strict-Transport-Security (HSTS) = add_header Strict-Transport-Security "max-age=31536000";(Browser, ALWAYS use HTTPS for this site)
+
+2. X-Content-Type-Options = add_header X-Content-Type-Options nosniff;
+(Browser, don’t guess file types”)
+
+3. X-Frame-Options = add_header X-Frame-Options DENY;
+(Don’t allow this site inside an iframe”)
+
+4. Content-Security-Policy (CSP) = add_header Content-Security-Policy "default-src 'self'"; (what resources are allowed to load on your site.)
+
+5. permission policy
+
+6. referrer policy :- Controls what info about the referring page is sent (no-referrer, strict-origin-when-cross-origin)
+
+# Headers for caching (performance)
+1. Cache-Control = add_header Cache-Control "no-store"; (“Don’t cache this response”)
+
+# example of headers :-
+server {
+    listen 443 ssl;
+
+    location / {
+        proxy_pass http://app:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        add_header X-Frame-Options DENY always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+}
+
+# =============================nginx load balancers =================================
+
+# types of load balancer :-
+1. round robin = Requests are distributed evenly across the servers, with server weights taken into consideration. This method is used by default;
+=> syntax :-
+upstream backend {
+   # no load balancing method is specified for Round Robin
+   server backend1.example.com;
+   server backend2.example.com;
+}
+
+2. Least connection :- A request is sent to the server with the least number of active connections. This method also takes server weights into consideration.
+
+=> syntax :-
+upstream backend {
+    least_conn;
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+3. IP-hash :- The server to which a request is sent is determined from the client IP address. In this case, either the first three octets of the IPv4 address or the whole IPv6 address is used to calculate the hash value. The method guarantees that requests from the same address get to the same server unless it is not available.
+
+syntax :-
+upstream backend {http://localhost/
+    ip_hash;
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+if one of the srver is down :-
+upstream backend {
+    server backend1.example.com;
+    server backend2.example.com;
+    server backend3.example.com down;
+}
+
+4. Generic Hash – The server to which a request is sent is determined from a user‑defined key. This key can be a text string, a variable, or a combination. For example, the key may be a paired source IP address and port. 
+
+upstream backend {
+    hash $request_uri consistent;
+    server backend1.example.com;
+    server backend2.example.com;
+}
+
+# ====================================Rate limit in nginx===============================
+
+# rate limiting in nginx is used to control the rate of incoming requests from clients to prevent abuse and ensure fair usage of server resources.
+
+# to limit the number of requests from a single IP address
+http {
+    limit_req_zone $binary_remote_addr zone=mylimit:10m rate=5r/s;
+
+    server {
+        location / {
+            limit_req zone=mylimit burst=10 nodelay;
+            proxy_pass http://backend;
+        }
+    }
+}
+
+# limit_req_zone Defines a shared memory zone to track requests.
+limit_req_zone $variable zone=name:size rate=rate;
+
+$variable → usually $binary_remote_addr (client IP)
+Zone=name:size → memory zone for tracking clients
+rate → max requests per second
+
+# limit_req Applies the limit to a location or server.
+limit_req zone=name [burst=number] [nodelay];
+
+zone → must match limit_req_zone
+burst → allows temporary extra requests
+nodelay → processes burst requests immediately (default is delayed)
+
+# limit_req_status 429; # to return 429 status code when rate limit exceeded
+
+# explain terms:
+# limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
+$binary_remote_addr = key for nginx to track clients using ip in binary form
+$http_x_api_key = key for nginx using api keys
+
+limit_req_zone = Defines a shared memory, zone to track requests.
+
+zone = defines a shared memory area where Nginx tracks client request states.
+api = api → name of the zone. You reference this in limit_req later
+10m = memory allocated to store request counters.
+      Each client IP uses ~64 bytes in memory
+      10 MB can track ~160,000 unique IPs at the same time
+
+rate = Defines the request rate allowed per key
+10r/s → 10 requests per second.
+
+# limit_req zone=api burst=5 nodelay
+burst = allows temporary excess requests above the normal rate limit
+        rate=10r/s → normal limit: 10 requests/sec per client IP
+        burst=5 → allows 5 extra requests temporarily if the client suddenly spikes
+
+        So a client can send up to 15 requests in a second:
+        10 requests at normal rate
+        +5 requests buffered as a burst
+# limit_req_status :-
+is an Nginx directive that sets the HTTP status code returned when a request is rejected due to exceeding the rate limit.
+
+syntax :-
+limit_req_status code;
+
+
+
+# types of rate limiting:-
+1. Request rate limiting = limit_req_zone + limit_req
+syntax :-
+http {
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
+    server {
+        location /api/ {
+            limit_req zone=api burst=5 nodelay;
+        }
+    }
+}
+
+2. connection limiting = limit_conn
+syntax:-
+http {
+    limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+    server {
+        location / {
+            limit_conn addr 5;
+        }
+    }
+}
+max 5 simultaneous connections per IP
+
+3. Bandwidth rate limit = limit_rate
+syntax:-
+location /downloads/ {
+    limit_rate 100k;  # 100 KB/s per connection
+}
+
+4. Burst limiting = limit_req + burst
+syntax:-
+limit_req zone=api burst=20 nodelay;
+
+# example
+http {
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+    server {
+        location /api/ {
+            limit_req zone=api burst=5 nodelay;
+            limit_conn addr 3;
+            limit_req_status 429;
+
+        }
+    }
+}
+
+Max 10 req/sec per IP, burst 5
+Max 3 simultaneous connections per IP

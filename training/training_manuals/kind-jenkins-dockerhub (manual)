@@ -1,0 +1,592 @@
+# what is AWS EKS?
+Amazon EKS is a managed Kubernetes service by Amazon Web Services.
+It runs Kubernetes for you without managing control plane.
+
+# what is kubernetes?
+Kubernetes is an open-source container orchestration platform that automates the deployment, scaling, and
+management of containerized applications.
+Kubernetes is a system that manages containers automatically.
+
+# What is cluster?
+A cluster is a group of nodes that run containerized applications.
+A cluster consists of a control plane and worker nodes.
+Cluster = Full Kubernetes environment.
+
+# What is control plane?
+The control plane is the brain of the Kubernetes cluster.
+It manages the cluster and makes decisions about scheduling, scaling, and maintaining the desired state of applications.
+Control Plane = Master Node.
+
+It includes: API Server, Scheduler, Controller Manager, etcd database.
+
+# what is worker node?
+Worker nodes are the machines that run the containerized applications.
+Worker Node = Node that runs your app.
+Worker nodes run the kubelet agent that communicates with the control plane and manages the containers.
+
+# what is pods?
+A pod is the smallest deployable unit in Kubernetes.
+A pod can contain one or more containers that share the same network and storage.
+Pod = Group of one or more containers.
+Pods are ephemeral and can be replaced by new pods if they fail or are deleted.
+pods run inside nodes.
+
+
+# what is nodes?
+Nodes are the machines (virtual or physical) that run the Kubernetes cluster.
+Nodes can be control plane nodes or worker nodes.
+Nodes are the actual servers that run your applications.
+
+# what is deployment?
+A deployment is a Kubernetes resource that manages a set of replicas of a pod.
+A deployment ensures that a specified number of pod replicas are running at any given time.
+Deployment = Manages the desired state of your application.
+Deployments allow you to update your application without downtime by rolling out new versions of the pods.
+
+# What is replicaset?
+A replicaset is a Kubernetes resource that ensures a specified number of pod replicas are running at any given time.
+A replicaset is created and managed by a deployment.
+Replicaset = Ensures the desired number of pod replicas are running.
+Replicasets are responsible for scaling the number of pods up or down based on the desired state defined in the deployment.
+
+# What is service?
+A service is a Kubernetes resource that provides a stable IP address and DNS name for a set of pods.
+A service allows you to expose your application to the outside world or to other services within the cluster
+Service = Exposes your application to the outside world or other services.
+Services can be of different types: ClusterIP, NodePort, LoadBalancer, etc.
+
+# what is  ingress? 
+An ingress is a Kubernetes resource that manages external access to services in a cluster, typically HTTP.
+An ingress allows you to define rules for routing external traffic to your services based on hostnames or paths.
+Ingress = Manages external access to services.
+Ingress controllers are responsible for fulfilling the ingress, usually with a load balancer.
+
+# what is namespace?
+A namespace is a Kubernetes resource that provides a way to divide cluster resources between multiple users or teams.
+A namespace allows you to create multiple virtual clusters within a single physical cluster.
+Namespace = Virtual cluster within a physical cluster.
+Namespaces are useful for organizing resources and managing access control.
+
+# what is kubectl?
+Kubectl is the command-line tool for interacting with Kubernetes clusters.
+Kubectl allows you to deploy applications, inspect and manage cluster resources, and view logs.
+Kubectl = Command-line tool for Kubernetes.
+Kubectl uses the kubeconfig file to connect to the cluster and manage resources.
+
+# what is kubeconfig file?
+The kubeconfig file is a configuration file that contains information about clusters, users, and contexts.
+The kubeconfig file allows kubectl to connect to the correct cluster and authenticate with the correct credentials
+Kubeconfig file = Configuration file for kubectl.
+The kubeconfig file is usually located at ~/.kube/config and can contain multiple cluster and user configurations.
+
+
+# what is daemonset?
+A daemonset is a Kubernetes resource that ensures that a copy of a pod is running on all (or some) nodes in the cluster.
+A daemonset is used for running background tasks or services that need to run on every node, such as log collection or monitoring agents.
+Daemonset = Ensures a pod runs on all/some nodes.
+Daemonsets are useful for deploying system-level applications that need to run on every node in the cluster.
+
+# what is statefulset?
+A statefulset is a Kubernetes resource that manages the deployment and scaling of a set of pods, and provides guarantees about the ordering and uniqueness of these pods.
+A statefulset is used for applications that require stable, unique network identifiers and persistent storage, such as databases.
+Statefulset = Manages stateful applications.
+Statefulsets provide stable network identities and persistent storage for each pod, which is essential for stateful applications.
+
+
+# what is HPA (Horizontal Pod Autoscaler)?
+The Horizontal Pod Autoscaler (HPA) is a Kubernetes resource that automatically scales the number of pod replicas based on observed CPU utilization or other select metrics.
+The HPA allows your application to scale up or down based on demand, ensuring that you have the right amount of resources to handle the workload.
+HPA = Automatically scales pods based on metrics.
+The HPA continuously monitors the metrics of your application and adjusts the number of replicas to maintain the
+desired performance and resource utilization.
+
+# what is PV (Persistent Volume) and PVC (Persistent Volume Claim)?
+A Persistent Volume (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes.
+A Persistent Volume Claim (PVC) is a request for storage by a user. It is similar to a pod in that pods consume node resources and PVCs consume PV resources.
+PV = Storage resource in the cluster.
+PVC = Request for storage by a user.
+PVCs allow users to request specific storage resources without needing to know the details of the underlying storage
+
+pv = Storage for pods.
+
+pvc = Request for storage by pods.
+
+# what is configmap and secret?
+A ConfigMap is a Kubernetes resource that allows you to store non-confidential data in key-value pairs. ConfigMaps are used to decouple configuration artifacts from image content to keep containerized applications portable
+A Secret is a Kubernetes resource that allows you to store and manage sensitive information, such as passwords, OAuth tokens, and SSH keys. Secrets are used to protect sensitive data and ensure that it is not exposed in the application code or configuration files.
+ConfigMap = Store non-confidential data.
+Secret = Store sensitive information.
+
+# what is kind?
+Kind (Kubernetes IN Docker) is a tool for running local Kubernetes clusters using Docker container "nodes".
+Kind is primarily designed for testing Kubernetes itself, but it can also be used for local development and
+CI/CD pipelines.
+Kind allows you to create a Kubernetes cluster on your local machine using Docker containers as the nodes.
+Kind is a great tool for learning Kubernetes, testing applications locally, and setting up CI/CD pipelines
+
+
+# ==================================== Architecture of Kubernetes=========================
+Kubernetes has a master-worker architecture.
+The master node (control plane) manages the cluster and makes decisions about scheduling and maintaining the desired state of applications.
+The worker nodes run the containerized applications and communicate with the master node through the kubelet agent.
+Kubernetes uses etcd as a distributed key-value store to store the cluster state and configuration data.    
+
+# components of control plane:
+- Control Plane (Master Node) :- API Server, Scheduler, Controller Manager, etcd database.
+# 1. what is API Server?
+The API Server is the main entry point.
+All commands go through it
+kubectl talks to API server
+Other components talk to API server
+
+Think of it as:
+👉 “Receptionist of Kubernetes”
+
+# 2. what is etcd database?
+etcd is a distributed key-value store that Kubernetes uses to store all cluster data, including the
+state of the cluster, configuration data, and metadata about the resources in the cluster.
+etcd is a key-value database.
+It stores:
+Cluster configuration
+Pod details
+Node information
+Secrets
+It stores the entire cluster state.
+If etcd is lost → cluster is lost.
+
+# 3. what is scheduler?
+The Scheduler is a component of the Kubernetes control plane that is responsible for assigning pods to nodes in the cluster based on resource requirements and other constraints.
+The Scheduler decides:
+Which node should run which pod.
+It checks:
+CPU availability
+Memory availability
+Resource limits
+
+# 4. what is controller manager?
+The Controller Manager is a component of the Kubernetes control plane that runs various controllers to manage the state of the cluster. 
+Controllers are responsible for ensuring that the desired state of the cluster matches the actual state.
+
+example:-
+You want 3 pods
+1 pod crashes
+Controller creates 1 new pod
+
+# components of worker node:
+Worker Nodes are machines that run your applications.
+
+Worker nodes contains :- kubelet, container runtime, kube-proxy, pods
+
+# 1. what is kubelet?
+The kubelet is an agent that runs on each worker node in a Kubernetes cluster. 
+It is responsible for communicating with the control plane and managing the lifecycle of pods on the node. 
+The kubelet ensures that the containers in the pods are running and healthy, and it reports the status of the node and its pods back to the control plane.
+
+# 2. what is container runtime?
+A container runtime is software that is responsible for running containers on a worker node.
+The most commonly used container runtime in Kubernetes is Docker, but Kubernetes also supports other runtimes such
+as containerd and CRI-O.
+The container runtime is responsible for:
+Pulling container images from a registry
+Starting and stopping containers
+Managing container resources
+The container runtime interacts with the kubelet to manage the lifecycle of containers on the worker node.
+
+# 3. what is kube-proxy?
+The kube-proxy is a network proxy that runs on each worker node in a Kubernetes cluster.
+It is responsible for maintaining network rules on the node and enabling communication between pods and services within the cluster.
+The kube-proxy ensures that network traffic is properly routed to the appropriate pods and services,
+and it provides load balancing for services that have multiple pod replicas.
+
+# working of kubernetes architecture:
+1. User runs kubectl command.
+2. kubectl sends request to API Server.
+3. API Server validates request and updates etcd database.
+4. Scheduler watches for new pods and assigns them to nodes.
+5. Controller Manager ensures the desired state is maintained.
+6. kubelet on worker node receives pod assignment and starts containers using the container runtime.
+7. kube-proxy manages network communication for the pods and services.
+
+# what is nginx-ingress?
+Nginx Ingress is a popular Ingress controller for Kubernetes that uses Nginx as
+the underlying proxy to manage external access to services in a Kubernetes cluster.
+Nginx Ingress allows you to define rules for routing external traffic to your services based on
+hostnames or paths, and it provides features such as SSL termination, load balancing, and authentication.
+
+nginx-ingress is a controller that actually implements the Ingress rules using NGINX.
+It does the following:
+Receives incoming HTTP/HTTPS traffic from outside the cluster.
+Matches requests to the rules defined in your Ingress resources (hostnames, paths, etc.).
+Forwards the request to the correct Kubernetes service.
+Optionally, rewrites URLs or applies load balancing, SSL/TLS, and rate limiting.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# create jenkins container first 
+# now connect jenkins with github using ssh-key 
+# we have to add Dockerfile index.html in github repo first for this example
+# now login to docker hub -> account settings -> security -> new access token -> give name and generate token -> copy token
+# now go to jenkins -> manage jenkins -> manage credentials -> global -> add credentials -> username/password -> username: dockerhub username , password: access token copied from docker hub -> ok
+# now go to jenkins -> manage jenkins -> configure system -> dockerhub -> add docker hub credentials created above -> test connection -> save  # optional
+# now create a jenkins pipeline job to build image and push to docker hub
+(here is the complete pipline for kind also (-name kind-pipe))
+
+pipeline {
+    agent any 
+
+    environment {
+        DOCKER_HUB_USER = 'gautamkathuria'
+        IMAGE_NAME      = 'myhtmltestapp'
+        DOCKER_CREDS    = 'docker-hub-creds' 
+        K8S_CREDS       = 'k8s_config'       
+        // We point directly to the KinD Control Plane container name
+        // This bypasses the need for the host IP 172.17.0.1
+        K8S_SERVER      = 'https://gautam-cluster-control-plane:6443'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git credentialsId: 'github-auth', 
+                    url: "git@github.com:Gautamkathuria/test-html.git", 
+                    branch: 'main'
+            }
+        }
+
+        stage('Build & Push Image') {
+            steps {
+                echo 'Building Image...'
+                // Using BUILD_NUMBER ensures you don't keep overwriting the same tag
+                sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest ."
+                
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", 
+                                                 passwordVariable: 'PASS', 
+                                                 usernameVariable: 'USER')]) {
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying to KinD Cluster via Kubernetes CLI Plugin...'
+                
+                // withKubeConfig is provided by the Kubernetes CLI Plugin
+                // It allows us to override the server URL without changing the file
+                withKubeConfig(credentialsId: "${K8S_CREDS}", serverUrl: "${K8S_SERVER}") {
+                    
+                    sh """
+                        # 1. Force kubectl to ignore the certificate block inside your config
+                        kubectl config set-cluster kind-gautam-cluster --insecure-skip-tls-verify=true
+                        
+                        # 2. Deploy using the updated context
+                        kubectl apply -f deployment.yaml
+                        
+                        # 3. Force pull newest image and wait for rollout across the 3 worker nodes
+                        kubectl rollout restart deployment/myhtml-app
+                        kubectl rollout status deployment/myhtml-app
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up local environment...'
+            sh 'docker logout'
+            sh 'docker image prune -f'
+        }
+        success {
+            echo 'Deployment Successful! Your app is running on 1 Master + 3 Worker nodes.'
+        
+        }
+    }
+}
+
+# now we have to add kind in this 
+
+# first install kind on local machine
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+ kind --version
+# now install kubectl on local machine
+
+# now make a kind cluster config file kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane  # This is your Master node
+- role: worker         # Worker 1
+- role: worker         # Worker 2
+- role: worker         # Worker 3
+
+# now create a cluster using kind-config
+kind create cluster --name gautam-cluster --config kind-config.yaml
+
+# to see nodes now
+kubectl get nodes
+
+# now create a deployment.yaml file to deploy the app using the image pushed to docker hub
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myhtml-app
+spec:
+  replicas: 3  # This will put 1 pod on each of your 3 worker nodes
+  selector:
+    matchLabels:
+      app: myhtml
+  template:
+    metadata:
+      labels:
+        app: myhtml
+    spec:
+      containers:
+      - name: html-container
+        image: gautamkathuria/myhtmltestapp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myhtml-service
+spec:
+  type: NodePort
+  selector:
+    app: myhtml
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30007 # Access via http://localhost:30007
+
+# push it to github repo also
+
+# now see a kind config file is created in ~/.kube/config
+cat ~/.kube/config
+
+# now create a jenkins credential to store this kind kubeconfig file
+# go to jenkins -> manage jenkins -> manage credentials -> global -> add credentials -> secret file -> choose file -> give id as k8s_config -> ok
+
+# now give environmanet variable in sysytem config -> global properties -> environment variables -> add -> PATH+EXTRA -> value (/usr/local/bin) -> ok -> save
+
+# now install a kubernetes cli plugin in jenkins
+
+# now do some network settings to allow jenkins to connect to kind cluster
+# we have to connect jenkins container to kind network
+docker network connect kind $(docker ps -qf "name=jenkins-jenkins-1")
+
+# now run the pipeline
+
+# to test the pods creating
+kubectl get pods -o wide
+
+# port forward to access the app
+kubectl port-forward deployment/myhtml-app 8078:80
+
+# now access the app at http://localhost:8078
+
+======================Create via loacl-node=========================
+# create ssh-key in our local terminal
+# jenkins -> manage jenkins -> manage credentials -> global -> add credentials -> ssh username with private key -> username: gautam , private key: enter directly -> paste the content of ~/.ssh/id_rsa -> id: ssh-jenkins-key -> ok
+# now go to nodes -> new node -> give name as local-node -> permanent agent -> ok
+# remote root directory: /home/jenkins
+# launch method: launch agent via ssh
+# host: pvt ip of local machine
+# credentials: ssh-jenkins-key
+# host key verification strategy: no verification
+# advanced -> java path: /usr/bin/java
+# now copy the public key to local machine authorized_keys
+# now save 
+ssh-copy-id -i ~/.ssh/id_rsa.pub gautam@localhost
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
+
+# java should be installed on local machine
+sudo apt install openjdk-11-jre 
+java -version
+which java
+
+
+# launch the node now
+# now create a pipeline job to build and push image to docker hub and deploy to kind cluster 
+pipeline {
+    // 1. Tell Jenkins to run specifically on your Ubuntu machine
+    agent { label 'local' } 
+
+    environment {
+        DOCKER_HUB_USER = 'gautamkathuria'
+        IMAGE_NAME      = 'myhtmltestapp'
+        DOCKER_CREDS    = 'docker-hub-creds' 
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git credentialsId: 'github-auth', 
+                    url: "git@github.com:Gautamkathuria/test-html.git", 
+                    branch: 'main'
+            }
+        }
+
+        stage('Build & Push Image') {
+            steps {
+                echo "Building Image version ${env.BUILD_ID}..."
+                
+                // Tagging with build number helps in rollbacks
+                sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest ."
+                sh "docker tag ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_ID}"
+                
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", 
+                                                 passwordVariable: 'PASS', 
+                                                 usernameVariable: 'USER')]) {
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+                    sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_ID}"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying directly from Localhost Node...'
+                
+                // Since we are ON the host, we use local kubectl context automatically
+                sh """
+                    # Ensure we are using the right cluster context
+                    kubectl config use-context kind-gautam-cluster
+                    
+                    # Apply changes
+                    kubectl apply -f deployment.yaml
+                    
+                    # Force the 3 workers to pull the new image
+                    kubectl rollout restart deployment/myhtml-app
+                    kubectl rollout status deployment/myhtml-app
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up local environment...'
+            sh 'docker logout'
+            // Clean up the specific build tag to save space, keep 'latest'
+            sh "docker rmi ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_ID} || true"
+        }
+        success {
+            echo 'Deployment Successful on Local-Node!'
+        }
+    }
+}
+
+# now run the pipeline
+
+
+
+============================set up cluster using aws cli ============================
+1. first install aws-cli on local machine and configure it using aws configure command
+2. now create a iam policy with name eks-trust-policy.json 
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "eks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+3. aws iam create-role   --role-name EKSClusterRole   --assume-role-policy-document file://eks-trust-policy.json
+
+4. now attach policy to role
+aws iam attach-role-policy \
+  --role-name EKSClusterRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  aws iam attach-role-policy \
+  --role-name EKSClusterRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+
+6. create security group for cluster
+allows port 443, 22, 10250 - 10255
+
+5. aws eks create-cluster \
+  --name my-eks-cluster \
+  --region ap-south-1 \
+  --role-arn arn:aws:iam::831926612453:role/EKSClusterRole \
+  --resources-vpc-config subnetIds=subnet-07ef6078c46e83bb9,subnet-00cefa80d261b15d3,securityGroupIds=sg-08e9d08a93ac1cae8
+
+6. check the status of cluster creation
+aws eks describe-cluster --name my-eks-cluster --region ap-south-1 --query "cluster.status"
+
+7. now create a node group iam policy with name eks-node-trust-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}   
+
+8. aws iam create-role \
+  --role-name EKSNodeRole \
+  --assume-role-policy-document file://eks-node-trust-policy.json
+
+9. now attach policy to node role
+aws iam attach-role-policy \
+    --role-name EKSNodeRole \
+    --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+aws iam attach-role-policy \
+    --role-name EKSNodeRole \
+    --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+aws iam attach-role-policy \
+    --role-name EKSNodeRole \
+    --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+10. now create a node group
+aws eks create-nodegroup \
+    --cluster-name my-eks-cluster \
+    --nodegroup-name my-node-group \
+    --subnets subnet-07ef6078c46e83bb9,subnet-00cefa80d261b15d3 \
+    --instance-types t3.medium \
+    --scaling-config minSize=1,maxSize=3,desiredSize=2 \
+    --node-role arn:aws:iam::831926612453:role/EKSNodeRole \
+    --region ap-south-1 
+
+11. kubectl get nodes --watch
+
+
+
+
+
+
+
+
+
+

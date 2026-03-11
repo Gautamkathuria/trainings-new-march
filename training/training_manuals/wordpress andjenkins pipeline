@@ -1,0 +1,288 @@
+# create a wordpress container we need database to store the files data 
+# here is the compose file for wordpress and db
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: wp-db
+    restart: always
+    env_file: ./.env/mysql.env
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - wp-network
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    container_name: wp-app
+    restart: always
+    ports:
+      - "8081:80"
+    env_file: ./.env/wordpress.env
+    volumes:
+      - ./wp_data:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - wp-network
+networks:
+    wp-network:
+        driver: bridge
+
+# create a .env folder and inside it create two files mysql.env and wordpress.env
+# mysql.env
+MYSQL_DATABASE=mydb
+MYSQL_USER=admin
+MYSQL_PASSWORD=password123
+MYSQL_ROOT_PASSWORD=password
+# wordpress.env
+WORDPRESS_DB_HOST=db
+WORDPRESS_DB_NAME=wp_prod
+WORDPRESS_DB_USER=admin
+WORDPRESS_DB_PASSWORD=password123
+
+# now run the compose file
+docker compose up -d
+# now you can access the wordpress setup on localhost:8081
+
+===================================host a static website using wordpress===================================
+# after setting up wordpress -> go to pages -> add new page
+# give the page name as home -> on the right side select template as homepage -> publish
+
+# now go to settings -> reading -> select the homepage as your homepage -> save changes
+# now go to appearance -> themes -> add new -> search for "astra" theme -> install
+# now go to appearance -> customize -> homepage settings -> uncheck "display latest posts" -> publish
+
+# now access localhost:8081 and you will see the static homepage
+
+===================================jenkins setup with wordpress===================================
+# to setup jenkins with wordpress we will create a jenkins pipeline that will pull the latest code from wordpress repo and deploy it to the wordpress container
+# first we need to install jenkins on our system using docker container
+jenkins:
+    image: jenkins/jenkins:lts
+    container_name: wp-jenkins
+    restart: always
+    user: root
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./jenkins_data:/var/jenkins_home
+      - /home/gautam/Desktop/project/multi-docker/wp_data:/var/www/html
+      - /home/gautam/Desktop/project/multi-docker/wp_dev_data:/var/www/dev_html   
+    networks:
+      - wp-network
+# now run the compose file
+docker compose up -d
+# now access jenkins on localhost:8082
+
+# now install plugins - git plugin, pipeline plugin, stage view plugin, docker plugin, multi branch pipeline plugin
+
+# now add github credentials in jenkins - go to manage jenkins -> manage credentials -> global -> add credentials
+# select kind ssh username with private key -> give username as github_name and paste the private key of your system -> add
+# now go to github repo -> settings -> deploy keys -> add deploy key
+# give title as jenkins_key -> paste the public key of your system 
+# create an index.html file in the repo with some content
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Static Site</title>
+</head>
+<body>
+  <h1>Hello from Jenkins multi-branch </h1>
+</body>
+</html>
+
+
+# now create a new pipeline job in jenkins
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                    git branch: 'main',
+                        credentialsId: 'word-test', 
+                        url: 'git@github.com:gautamkathuria-sudo/wp-static-site'
+            }
+        }
+
+        stage('Deploy & Override WordPress') {
+            steps {
+                script {
+                    sh 'cp -f index.html /var/www/html/index.html'
+                    sh 'echo "DirectoryIndex index.html index.php" > /var/www/html/.htaccess'
+                    sh 'chown www-data:www-data /var/www/html/index.html /var/www/html/.htaccess'
+                    echo "SUCCESS: index.html is now the primary page."
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build successful! Your site is live at http://localhost:8081"
+        }
+    }
+}
+# now run the pipeline and it will deploy the latest code to the wordpress container
+# now access localhost:8081 and you will see the updated static homepage from jenkins pipeline
+
+
+=====================================create multi-branch pipeline=====================================
+# to create multi-branch pipeline we need to create multiple branches in our github repo
+# create two branches dev and prod
+
+# now create a new multi-branch pipeline job in jenkins
+# installed plugin multi branch pipeline
+
+# docker compose file for jenkins multi branch pipeline
+services:
+  db:
+    image: mysql:8.0
+    container_name: wp-db
+    restart: always
+    env_file: ./.env/mysql.env
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - wp-network
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    container_name: wp-app
+    restart: always
+    ports:
+      - "8081:80"
+    env_file: ./.env/wordpress.env
+    volumes:
+      - ./wp_data:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - wp-network
+
+  wordpress-dev:
+    image: wordpress:php8.2-apache
+    container_name: wp-dev
+    restart: always
+    ports:
+      - "8083:80"
+    env_file: ./.env/wordpress_dev.env
+    volumes:
+      - ./wp_dev_data:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - wp-network
+
+
+networks:
+  wp-network:
+
+# now create a new file wordpress_dev.env in .env folder
+WORDPRESS_DB_HOST=db
+WORDPRESS_DB_NAME=wp_dev
+WORDPRESS_DB_USER=admin
+WORDPRESS_DB_PASSWORD=password123
+
+# now run the compose file
+docker compose up -d
+# now access wordpress dev on localhost:8083
+# now access wordpress prod on localhost:8081
+# now create a new multi-branch pipeline job in jenkins
+# now add github credentials in jenkins - go to manage jenkins -> manage credentials -> global -> add credentials
+# select kind ssh username with private key -> give username as github_name and paste the private key
+# now go to github repo -> settings -> deploy keys -> add deploy key
+# give title as jenkins_key -> paste the public key of your system
+
+# now create a jenkins file and index.html and [push it to te github repo in both branches dev and prod]
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // In Multibranch, this automatically pulls the correct branch
+                checkout scm
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    def targetPath = ""
+                    
+                    if (env.BRANCH_NAME == 'main') {
+                        targetPath = "/var/www/html" // Mapped to wp_data
+                        echo "Deploying to PRODUCTION (Port 8081)"
+                    } else if (env.BRANCH_NAME == 'dev') {
+                        targetPath = "/var/www/dev_html" // Mapped to wp_dev_data
+                        echo "Deploying to DEVELOPMENT (Port 8083)"
+                    } else {
+                        echo "Branch ${env.BRANCH_NAME} is not set for auto-deploy. Skipping."
+                        return
+                    }
+
+                    // Copy and set priority
+                    sh "cp -f index.html ${targetPath}/index.html"
+                    sh "echo 'DirectoryIndex index.html index.php' > ${targetPath}/.htaccess"
+                    sh "chown www-data:www-data ${targetPath}/index.html ${targetPath}/.htaccess"
+                }
+            }
+        }
+    }
+}
+
+# and index.html for both branch u wil decide.
+
+# now go to jenkins multi-branch pipeline job -> configure
+# under branch sources -> add source -> git
+# give the repo url and credentials
+git@github.com:gautamkathuria-sudo/wp-static-site.git
+# now save and it will automatically detect both branches dev and main
+
+# for auto trigger on code change for multi branch pipeline
+# go to configure -> scan multibranch pipeline triggers
+# select "periodically if not otherwise run"
+# give the interval as 1 minute
+# now save
+
+# now whenever u push code to either dev or main branch it will automatically trigger the respective pipeline and deploy the code to respective wordpress container
+# push code to dev branch and check localhost:8083
+git checkout dev
+# push code to main branch and check localhost:8081
+git checkout main
+
+=======================================password reset for wordpress=======================================
+# to reset the password for wordpress we need to access the mysql container
+docker exec -it wp-db bash
+docker compose exec db mysql -u admin -p
+
+# show databases;
+use wp_prod;
+# show tables;
+select * from wp_users;
+# update wp_users set user_pass=MD5('newpassword') where user_login='admin';
+# exit
+# exit  
+# now login to wordpress with new password
+=======================================backup and restore wordpress database=======================================
+# to backup the wordpress database we need to access the mysql container
+docker exec -it wp-db bash
+# now run the following command to backup the database
+mysqldump -u admin -p wp_prod > /backup/wp_prod_backup.sql
+# now copy the backup file to host machine
+docker cp wp-db:/backup/wp_prod_backup.sql ./wp_prod_backup.sql
+# now to restore the database we need to copy the backup file to mysql container
+docker cp ./wp_prod_backup.sql wp-db:/backup/wp_prod_backup.sql
+# now access the mysql container
+docker exec -it wp-db bash
+# now run the following command to restore the database
+mysql -u admin -p wp_prod < /backup/wp_prod_backup.sql
+# now exit
+# exit
+
+
+
+

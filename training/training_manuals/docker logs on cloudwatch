@@ -1,0 +1,22 @@
+# firstly attach iam permission to ec2 instance of 
+"CloudWatchAgentServerPolicy"
+
+# then create a dokcer compose file
+services:
+  app:
+    image: nginx
+    container_name: my-app
+    ports:
+      - "80:80"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /docker/my-app
+        awslogs-region: us-east-1
+        awslogs-stream: container-{{.Name}}
+        awslogs-create-group: "true"
+
+# then run the docker compose file
+docker-compose up -d
+# then you can check the logs in cloudwatch logs console
+cloudwatch -> logs -> logs management -> /docker/my-app

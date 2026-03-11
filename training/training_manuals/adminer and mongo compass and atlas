@@ -1,0 +1,287 @@
+# create a adminer container:
+adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8084:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql_db
+    depends_on:
+      - mysql_db
+      - postgres
+    networks:                            # important to add network same as database
+      - db_net
+
+# Access adminer GUI at http://localhost:8084
+# login with the following details:-
+# System: MySQL or PostgreSQL
+# Server: mysql_db or postgres
+# Username: as per your database user
+# Password: as per your database password
+# Database: as per your database name
+
+
+
+
+# now set up mongodb compass to connect to the mongo db container
+wget https://downloads.mongodb.com/compass/mongodb-compass_1.46.10_amd64.deb
+sudo dpkg -i mongodb-compass_1.46.10_amd64.deb
+or 
+sudo apt install ./mongodb-compass_1.46.10_amd64.deb
+# open mongodb compass
+mongodb-compass 
+
+# now connect to mongo db using the following connection string:-
+mongodb://readonly:readonly123@localhost:27017/mydb?authSource=admin
+# username: readonly
+# password: readonly123
+# auth database: admin
+
+## =========================mongodb atlas==========================
+
+# go to https://www.mongodb.com/cloud/atlas/register to create a free account
+# create a cluster
+# go to database access -> add new database user
+# username: iwhf
+# password: Iwhf@1234
+# user privileges: read and write to any database
+# go to network access -> add ip address -> allow access from anywhere 0.0.0.0
+# go to clusters -> connect -> mongocompass -> connect your application
+# copy the connection string and update the username and password
+mongodb://iwhf:Iwhf@1234@cluster0-shard-00-
+
+# now connect atlas using mongodb compass
+# open mongodb compass
+mongodb-compass
+# now connect to mongo db using the following connection string 
+#when going to connect -> mongo-compass -> copy connection string:-
+mongodb+srv://<db_username>:<db_password>@cluster0.m10kzjy.mongodb.net/?appName=Cluster0
+# username: iwhf
+# password: Iwhf@1234
+
+# now go to compass -> add connection -> paste the above connection string -> connect
+
+# now connect using terminal mongo shell
+https://www.mongodb.com/docs/mongodb-shell/install/?operating-system=linux&linux-distribution=ubuntu&ubuntu-version=noble
+# install mongo shell
+wget https://downloads.mongodb.com/compass/mongosh-1.11.1-linux
+or 
+wget -qO- https://www.mongodb.org/static/pgp/server-8.0.asc | sudo tee /etc/apt/trusted.gpg.d/server-8.0.asc
+
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+sudo apt-get update
+sudo apt-get install -y mongodb-mongosh
+mongosh --version
+
+# connect to mongo db using mongo shell
+atlas -> clusters -> connect -> mongo shell -> copy the connection string:-
+# now connect using the copied connection string
+mongosh "mongodb+srv://cluster0.m10kzjy.mongodb.net/" --apiVersion 1 --username gautam
+
+# connect mongodb to atlas using backup and restore
+# take backup of mongo db container
+sudo docker compose exec mongo_db bash
+
+# install all tools
+sudo apt-get install -y mongodb-database-tools
+
+# take backup using mongodump
+mongodump   --username root   --password example   --authenticationDatabase admin   --db mydb   --out dump/
+
+# now restore the backup to atlas
+# go to atlas -> clusters -> connect -> driver -> copy the connection string:-
+# run from host server
+mongorestore   --uri "mongodb+srv://gagan:gagan@test-cluster0.ylknzlw.mongodb.net/"   --db mynewdb   --drop   /home/gautam/Desktop/project/database/db_backup/mongobackup/testdb/
+
+# to verify the restored database
+mongosh "mongodb+srv://test-cluster0.ylknzlw.mongodb.net/" --apiVersion 1 --username gagan
+
+# replace special characters in password with url encoded values
+# %40 for @
+# username: gautam
+# password: admin@123
+
+# ========================= Atlas CLI ==============================================
+# install atlas cli
+Ubuntu/Debian
+curl -fsSL https://pgp.mongodb.com/atlas-cli.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-atlas-cli.gpg
+echo "deb [signed-by=/usr/share/keyrings/mongodb-atlas-cli.gpg] https://repo.mongodb.com/apt/ubuntu jammy/mongodb-atlas-cli multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-atlas-cli.list
+sudo apt-get update
+sudo apt-get install -y mongodb-atlas-cli
+
+# verify installation
+atlas --version
+# Login
+atlas auth login
+# Login with API keys
+atlas auth login --publicKey <public-key> --privateKey <private-key>
+# Check who is logged in
+atlas auth whoami
+# Logout
+atlas auth logout
+# Register new account
+atlas auth register
+
+
+# Initialize configuration
+atlas config init
+# List configuration
+atlas config list
+# Set default project
+atlas config set project_id <project-id>
+# Set output format (json or plaintext)
+atlas config set output json
+atlas config set output plaintext
+# Describe current config
+atlas config describe name 
+
+
+# List all projects
+atlas projects list
+# Create a project
+atlas projects create <project-name>
+# Describe a project
+atlas projects describe <project-id>
+# Delete a project
+atlas projects delete <project-id>
+# List users in a project
+atlas projects users list
+# Invite user to project
+atlas projects invitations invite <email> --role GROUP_OWNER
+
+# List organizations
+atlas organizations list
+# Describe organization
+atlas organizations describe <org-id>
+# List users in organization
+atlas organizations users list
+# Invite user to organization
+atlas organizations invitations invite <email> --role ORG_OWNER
+
+
+# List all clusters
+atlas clusters list
+# Describe a cluster
+atlas clusters describe <cluster-name>
+# Get connection strings
+atlas clusters connectionStrings describe <cluster-name>
+# Watch cluster status
+atlas clusters watch <cluster-name>
+
+# Create M10 cluster (paid)
+atlas clusters create <cluster-name> \
+  --provider AWS \
+  --region US_EAST_1 \
+  --tier M10 \
+  --diskSizeGB 10
+# Create M0 (free tier) - must use web interface
+
+# Pause a cluster
+atlas clusters pause <cluster-name>
+# Resume a cluster
+atlas clusters start <cluster-name>
+# Delete a cluster
+atlas clusters delete <cluster-name>
+# Delete with force (no confirmation)
+atlas clusters delete <cluster-name> --force
+# Update cluster
+atlas clusters update <cluster-name> --tier M20
+# Upgrade cluster
+atlas clusters upgrade <cluster-name>
+
+# List all database users
+atlas dbusers list
+# Create a database user
+atlas dbusers create \
+  --username <username> \
+  --password <password> \
+  --role <role>
+# Create user with specific database access
+atlas dbusers create \
+  --username myuser \
+  --password Pass123 \
+  --role readWrite@mydatabase
+# Create admin user
+atlas dbusers create \
+  --username admin \
+  --password AdminPass123 \
+  --role atlasAdmin
+# Create user with multiple roles
+atlas dbusers create \
+  --username multiuser \
+  --password Pass123 \
+  --role readWrite@db1 \
+  --role read@db2
+# Update user password
+atlas dbusers update <username> --password <new-password>
+# Update user role
+atlas dbusers update <username> --role atlasAdmin
+# Delete a user
+atlas dbusers delete <username>
+# Delete user without confirmation
+atlas dbusers delete <username> --force
+# Describe a user
+atlas dbusers describe <username>
+
+# common roles:
+--role read@<database>                # Read-only
+--role readWrite@<database>           # Read and write
+--role readAnyDatabase                # Read all databases
+--role readWriteAnyDatabase           # Read/write all databases
+--role dbAdmin@<database>             # Database admin
+--role atlasAdmin                     # Full cluster admin
+
+
+
+# List all access lists
+atlas accessLists list
+# Add current IP to whitelist
+atlas accessLists create --currentIp
+# Add specific IP
+atlas accessLists create --ip <ip-address>
+# Add IP with comment
+atlas accessLists create --ip 192.168.1.100 --comment "Office IP"
+# Add IP range (CIDR)
+atlas accessLists create --cidr 192.168.1.0/24
+# Add CIDR with comment
+atlas accessLists create --cidr 192.168.1.0/24 --comment "Office Network"
+# Allow access from anywhere (not recommended)
+atlas accessLists create --cidr 0.0.0.0/0 --comment "Public Access"
+# Delete an IP
+atlas accessLists delete <ip-address>
+# Delete CIDR
+atlas accessLists delete <cidr-block>
+# Delete without confirmation
+atlas accessLists delete <ip-address> --force
+# Describe access list entry
+atlas accessLists describe <entry-value>
+
+
+# List snapshots
+atlas backups snapshots list <cluster-name>
+# Create a snapshot
+atlas backups snapshots create <cluster-name>
+# Create snapshot with description
+atlas backups snapshots create <cluster-name> \
+  --desc "Before production deployment"
+# Describe a snapshot
+atlas backups snapshots describe <cluster-name> <snapshot-id>
+# Delete a snapshot
+atlas backups snapshots delete <cluster-name> <snapshot-id>
+# Watch snapshot creation
+atlas backups snapshots watch <cluster-name> <snapshot-id>
+
+
+# List teams
+atlas teams list
+# Create a team
+atlas teams create <team-name>
+# Describe a team
+atlas teams describe <team-id>
+# Delete a team
+atlas teams delete <team-id>
+# Add user to team
+atlas teams users add <team-id> <user-id>
+# Remove user from team
+atlas teams users delete <team-id> <user-id>

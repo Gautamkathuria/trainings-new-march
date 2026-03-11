@@ -1,0 +1,244 @@
+===========================# docker file structure===================================
+
+FROM --	Base image (required as first line)
+WORKDIR --	Directory inside container
+COPY --	Copy files from host → container
+ADD	-- Like COPY but can extract archives & download
+RUN --	Execute commands in build time
+CMD --	Default command when container starts
+ENTRYPOINT --	Main command container always runs
+ENV --	Set environment variables
+EXPOSE --	Document port (not required but useful)
+USER --	Switch to a user
+VOLUME --	Declare mount point
+
+# to build image from docker file
+docker build -t myapp .
+
+# four things to ask from developer whil creating docker file
+1. base image version
+2. environment name and path
+3. start command
+
+================================# docker hub commands=====================================
+# login/logut to docker hub
+docker login/logut
+it also creates ~/.docker/config.json with credentials when login
+
+# to pull an image 
+docker pull image_name
+
+# to push an image
+docker push dockerhub_username/image_name:tag
+
+DOCKER_USERNAME/REPOSITORY_NAME:TAG
+# 1. tag the image
+docker tag myapp gautam123/myapp:1.0
+
+# 2. push the image
+docker push gautam123/myapp:1.0
+
+# to search the image in docker hub
+docker search ubuntu
+docker search jenkins
+
+
+========================# docker commands to setup docker in linux========================
+sudo usermod -aG docker ubuntu
+
+# to download docker
+curl -fsSL https://get.docker.com | sudo sh
+
+# to see the info of docker
+docker info
+
+# to see the version of docker
+docker --version
+docker compose --version
+
+# to start the docker
+systemctl start docker
+# to stop the docker
+systemctl stop docker
+
+# to see the container running
+docker ps
+docker compose ps 
+# to see all the containers
+docker ps -a
+docker compose ps -a
+
+# to see the images
+docker images
+docker compose images
+
+# to download image from docker hub
+docker pull image_name
+
+# to run the image 
+docker run image_name
+
+# to delete all stopped containers
+docker container prune
+
+# to delete all unused images
+docker image prune
+
+# to delete all unused volumes
+docker volume prune
+
+# to delete a specific container
+docker rm container_id/container_name
+
+# to delete a specific image
+docker rmi image_id/image_name
+
+# to run with terminal access
+docker run -it image_name bash
+docker compose exec service_name bash
+
+# to run container in backgroung
+docker run -d continer_name
+
+# give custom name to container
+docker run --name custom_name -d image_name
+
+# to map host port to container port
+docker run -p 8080:80 nginx
+
+# to stop/start/remove container
+docker stop/start/rm mynginx
+  rm -f = force remove
+
+# to remove an image
+docker rmi imagename
+
+# to see the logs
+docker logs mynginx
+   -f = follow logs(live)
+
+# to enter inside running container
+docker exec -it mynginx bash
+docker compose exec service_name bash
+
+# to copy from root/user to container
+docker cp /path/on/host/file.sql mysql_db:/path/in/container/file.sql
+sudo docker compose cp ~/Desktop/project/back.sql mysql_db:/tmp/
+
+# build an image from dockerfile
+docker build -t myapp .
+
+# to tag an image
+docker tag myapp myrepo/myapp:v1
+
+# to see container details
+docker inspect mynginx
+
+# list all networks
+docker network ls
+docker compose network ls
+
+# to create and inspect a nwk
+docker network create/inspect mynetwork
+
+# to connect a network to container
+docker network connect mynetwork mycontainer
+
+# to list all volumes
+docker volume ls
+docker compose volume ls
+
+# to create and inspect a volume
+docker volume create/inspect myvolume
+
+# show docker disk usage
+docker system df
+
+# clean extra data
+docker system prune
+
+# start/stop container from docker compose
+docker compose up/down
+   -d = start in background
+   -v = to show which container is down
+docker compose up -d --force-recreate = recreate all containers(update)
+
+=============================== share the running container==============================
+# to share the running container
+# 1. commit the container to an image
+docker commit container_id image_name:tag
+docker commit container_id image_name 
+
+# save the image as tar file
+docker save -o image_name.tar image_name:tag
+docker save -o imagename.tar image_name
+-o  = output file name
+# copy the tar file to another server
+
+1. create a ssh key in local server
+ssh-keygen -t rsa -b 4096
+
+2. copy the public key to remote server
+ssh-copy-id user@remote_server_ip
+or manually copy the id_rsa.pub in the ~/.ssh/authorized_keys file of remote server
+
+3. now change the permissions
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
+4. now copy the tar file to remote server
+scp image_name.tar user@remote_server_ip:/path/on/remote/server
+
+5. load the image from tar file in remote server
+docker load -i image_name.tar
+-i = input file name
+
+6. now run the container from the image
+docker run -d -p 8080:8080 --name adminer adminer:1.0
+docker run -d image_name:tag
+
+docker run -d myapp:1.0
+
+
+======================= docker limits on resource usage=========================
+# limit the cpu usage to 0.5 cpu
+docker run -d --name myapp --cpus=".5" myapp
+# limit the memory usage to 500mb
+docker run -d --name myapp --memory="500m" myapp:1.0
+# limit both cpu and memory
+docker run -d --name myapp --cpus=".5" --memory="500m" myapp:1.0
+# to see the resource usage of container
+docker stats
+docker compose stats
+
+# to limit resource usage in docker compose file
+version: "3.9"
+services:
+  myapp:
+    image: myapp:1.0
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 500M
+
+use this instead of deploy if you are not using swarm mode
+
+services:
+  myapp:
+    image: myapp:1.0
+    cpus: 1.0
+    mem_limit: 500m
+
+
+
+
+
+
+
+
+
+
+
+
+

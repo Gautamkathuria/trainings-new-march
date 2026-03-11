@@ -1,0 +1,238 @@
+                  ====Users and groups commands====
+-------------------------------------------------------------------
+1. adduser username - create a user
+2. adduser username groupname - add user to a specific group
+3. cat etc/passwd - to see users
+4. users - to see users
+5. groups - to see groups
+6. getent group - to see all groups
+7. id username - tells all details about users
+8. who - tells who loggedin 
+9. usermod --lock username - to lock a user
+10.usermod --unlock username - to unlock a user
+11. groupadd groupname - create a new group
+12. sudo usermod -aG groupname username - add a user to a group
+13. sudo gpasswd -d username groupname - remove a user from a group
+14. sudo groupmod -n newname oldname - change a group name
+15. sudo groupmod -g NEW_GID groupname - change a group id
+16. sudo usermod -g newgroup username - change user's primary group
+17. sudo usermod -aG groupname username - add user to secondary    group
+18. sudo groupmod -n newname oldname -change a group name
+19. sudo deluser username - to delete a user
+20. sudo deluser --remove-home username - dlt a user and also its home dir
+21. sudo deluser username groupname - dlt user from a specific group
+22. sudo delgroup groupname - to dlt a specific group
+23. sudo usermod -g primarygroup -G group1,group2 username - set both primary and secondary group at one time
+24. sudo usermod -aG group1,group2,group3 username - add multiple secondary groups
+25. sudo usermod -G group1,group2 username - replaceall secondary group
+26. sudo usermod -g groupname username - add primary group
+27. psswd username - to modify psswd
+-------------------------------------------------------------------
+===ssh -i flutterbye-dev-key.pem ubuntu@52.7.252.254===
+                     ===File Permissions==
+Permission types:-
+r=read(4)
+w=write(2)
+x=execute(1)
+
+Permission Groups:-
+u=users
+g=group
+o=owner
+
+644 = create a file with user
+775 = create a dir with user(when gp and user is same)
+
+755 = create a dir with root
+644 = create a file with root
+
+
+1. ls -l = to view permissions
+2. chmod = to change the permissions
+3. chmod u=rwx,g=rx,o=r filename = to change the permission
+4. sudo chown username filename = to change the owner of the file
+5. sudo chown :groupname file = to change group of the file
+6. sudo chown user:group file = change both group and user
+-------------------------------------------------------------------
+
+                       ===File Management===
+1. touch filename - create a file
+2. echo "Hello" > file.txt - create file with content
+3. mkdir foldername - create directories
+4. cp - copy file
+5. mv - ove files
+6. rm - delete files
+7. cat - view file content
+8. less - view with scrolling
+9. head - view first 10 lines
+     -n = no. of lines
+     -c = show bytes instead of lines
+10. tail - view last 10 lines
+     -n = no. of lines
+     -f = follow live
+11. grep - searching inside files
+     -i = case-sensitive research
+     -n = show line numbers
+     -r = search recursively
+     -o = only matching pattern
+     -c = count
+-------------------------------------------------------------------
+                          ===SSH===
+ 1. ifconfig = to check the ip address
+      - lo = loopback address
+      - wlp = wifi address
+      - eno1 = ethernet address
+ 2. curl ifconfig.me = gives system public address
+              
+              ===SSH password based login===
+ 3. ssh username@ip = connect remote server
+ 4. ssh -i key.pem ubuntu@Public_IP = if using ssh-key
+                  ===SSH key based login===
+ 5. ssh-keygen -t rsa -b 4096 = to generate rsa keys
+        
+     - id-rsa = to save pvt keys
+     - id-rsa.pub = to save public keys
+ 6. ssh-copy-id user@ip = to copy the ip in remote
+ 7. ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub - rereated the pub key if deleted
+ => if key is deleted, befre we have to take backup of the ssh-keys we have to copy the ssh keys to our drive.
+ 
+ => SSH permissions:-
+ 1. chmod 700 ~/.ssh = .ssh directory permission
+ 2. chmod 600 ~/.ssh/authorized_keys
+ 3. chmod 600 ~/.ssh/id_rsa
+ 4. chmod 644 ~/.ssh/id_rsa.pub
+ 5. chmod 755 /home/<username>
+
+=>SSH config file:- (shortcuts)
+Host myserver
+    HostName 192.168.1.55
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+now, ssh myserver
+-------------------------------------------------------------------
+                     ===Process Management===
+1. ps/ps aux = show all running process
+2. pidof name = to see the process id
+3. top = to see the cpu and memory usage
+4. kill = to kill a process
+     -9 = force kill
+     -15 = safe kill
+5. systemctl = manage the system services
+6. ./app & = to run a process in background
+7. fg %1 = bring job to foreground
+8. nohub = run a process after logout
+9. ps -l = check priority
+10.vmstat = system performance summary
+11.nice,renice = process priority
+
+=>/proc = directory in linux which contains running processes,cpu,memory,system config, kernel parameters.
+
+=>pm2 commands:- pm2 start,stop etc.
+
+=>screen:-
+screen is a terminal multiplexer that allows you to:
+
+✔ Run processes in the background
+✔ Keep sessions alive even after logout
+✔ Reconnect to running sessions
+✔ Run multiple terminals inside one SSH connection
+
+1. screen = unname session.
+2. screen -S mysession = name session
+3. screen -ls
+4. screen -r mysession = reattach session
+5. ctrl + A , d = detach session
+6. screen -S myapp -dm node app.js = run command direct on screen
+
+=>setsis:- start a process in new session
+1.setsid node app.js - start a process
+
+
+=> disown:- removes a job from the shell’s job table
+-------------------------------------------------------------------
+   ===Set up docker environment and deploy mogodb container====
+   
+1.curl -fsSL https://get.docker.com | sudo sh
+2.docker --version
+3.docker compose version
+4.cd project
+5.vi docker-compose.yml
+Version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongodb
+    restart: always
+    environment:
+      - ./.env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mongo_net
+volumes:
+  mongo_data:
+networks:
+  mongo_net:
+    driver: bridge
+ also, create a .env file at same location as of docker-compose
+vi .env
+MONGO_ROOT_USER=admin
+MONGO_ROOT_PASSWORD=admin123
+
+MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+
+
+6.docker compose config
+7.docker compose up
+8.docker ps
+9.docker ps -a
+10.docker exec -it mongodb mongosh -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD"
+==sudo docker compose exec -it mongo mongosh -u root -p example --authenticationDatabase admin
+
+11.use mydb
+12.db.test.insertOne({name:"gautam"})
+== db.test.insertMany({})
+13.show tables
+== show collections
+14.db.test.find()
+15.db.createUser({
+  user: "mydbuser",
+  pwd: "password",
+  roles: [
+    { role: "readWrite", db: "mydb" }
+  ]
+})
+
+16.sudo docker exec -it mongodb mongosh -u mydbuser -p password --authenticationDatabase mydb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+

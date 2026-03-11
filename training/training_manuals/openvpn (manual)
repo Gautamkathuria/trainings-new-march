@@ -1,0 +1,74 @@
+https://github.com/kylemanna/docker-openvpn
+# to setup openvon in ubuntu:-
+cd openvpn
+# create a docker compose file:-
+version: '3.8'
+services:
+  openvpn:
+    image: kylemanna/openvpn
+    container_name: openvpn-server
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "1194:1194/udp"
+    volumes:
+      - ./openvpn_data:/etc/openvpn
+    restart: unless-stopped
+
+# initialize openvpn config:-
+docker compose run --rm openvpn ovpn_genconfig -u udp://<your_server_ip>
+
+# to see public ip:-
+curl ifconfig.me = to see public ip 
+curl ip.me
+
+#  Generate Server Certificates and Keys
+docker compose run --rm -it openvpn ovpn_initpki
+
+# start the open vpn server
+ docker compose up -d
+
+#  Generate Client Certificates and Configuration
+ docker compose run --rm -it openvpn easyrsa build-client-full client1 nopass
+
+# Retrieve Client Configuration:
+docker compose run --rm openvpn ovpn_getclient client1 > client1.ovpn
+
+# copy the openvpn in local machine from ec2 server
+# run on local machine terminal
+ssh-keygen -t rsa -b 4096
+
+# then copy the rsa.pub to ec2 server authorized_keys file
+then chmod 600 ~/.ssh/authorized_keys
+ 
+ # then connect to ec2 server from local machine
+ ssh user@ec2_server_ip 
+ # then exit
+
+# now connect using scp
+scp -i ~/.ssh/your_key.pem ubuntu@ec2_server_ip:/path/to/client1.ovpn ~/Downloads/
+or
+sudo scp -i ~/.ssh/id_rsa -r ubuntu@3.89.164.254:/home/ubuntu/openvpn/ ~/Downloads/open
+
+# now update the setting in local machine
+# setting > network > vpn > + > import file > select the gautam.ovpn file
+# then turn on gautam vpn
+
+# then test the ip
+curl ifconfig.me
+or
+curl ip.me
+
+
+# revoke a client
+docker-compose run --rm openvpn easyrsa revoke gagan
+docker-compose run --rm openvpn easyrsa gen-crl
+docker-compose restart openvpn
+
+# connect to client
+sudo openvpn --config gagan.ovpn
+or 
+# using setting > network > vpn > + > importfile > gagan.ovpn
+
+
+# open sg port 1194 in aws security group for udp protocol to allow vpn connection (for udp not tcp)

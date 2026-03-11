@@ -1,0 +1,200 @@
+# install nginx in local:-
+sudo apt update
+sudo apt install nginx
+
+# install nginx via ppa:-
+ppa - personal package archieve
+# Add the official Nginx PPA
+sudo add-apt-repository ppa:nginx/stable
+# Update package lists
+sudo apt update
+# Install Nginx
+sudo apt install nginx
+# Check version
+nginx -v
+
+
+# install nginx in local via source:-
+cd /usr/local/src
+wget http://nginx.org/download/nginx-1.29.3.tar.gz
+tar -zxvf nginx-1.29.3.tar.gz
+cd nginx-1.29.3
+
+sudo ./configure \
+--prefix=/etc/nginx \
+--sbin-path=/usr/sbin/nginx \
+--conf-path=/etc/nginx/nginx.conf \
+--pid-path=/var/run/nginx.pid \
+--with-http_ssl_module \
+--with-http_v2_module \
+--with-http_gzip_static_module \
+--with-pcre
+
+make (build tool used to compile and build software)
+sudo make install
+
+sudo /usr/sbin/nginx
+sudo nginx -t   # test configuration
+sudo nginx -s reload
+
+/configure       # repares the build. It checks your system for necessary tools and libraries, and sets options for how the software will be built.
+make              # compile source code into binaries
+make test         # optional, run built-in tests
+sudo make install # install binaries to system paths
+
+
+
+# to create a nginx container using docker:-
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - "80:80" 
+    volumes:
+      - ./data:/etc/nginx/conf.d
+      - ./html:/usr/share/nginx/html
+    networks:
+      - nginx-net
+
+networks:
+  nginx-net:
+    driver: bridge 
+
+# now create data/nginx.conf 
+server {
+    listen 80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+   location /api/ {
+        proxy_pass http://node:4000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+}
+
+# now create html/index.html
+
+# now run the compose file
+docker compose up -d
+
+# hit the url:-
+http:\\localhost or 127.0.0.1
+it will show the content
+
+# now set up the reverse proxy:- (user hit rqst to nginx and nginx give that rqst to backend ) (forwards client request to backend)
+# create a backend container and dont expose port 
+services:
+  node:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install && npm start"
+    networks:
+      - nginx-net
+
+networks:
+  nginx-net:
+    driver: bridge 
+ 
+# create the backend/server.js and exose port 4000 (listen) and api endpoint (/hello)
+# create backend/package.json
+# now edit the nginx.conf file and location 
+location /api/ {
+        proxy_pass http://node:4000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+# now run compose file:-
+docker compose up -d
+
+
+# hit the url:-
+http:\\localhost\api\hello or 127.0.0.1
+it will show the backend content
+
+# types of reverse proxy:-
+1. load balancing reverse proxy (upstream server)
+2. caching reverse proxy = Serve repeated content from cache
+4. security reverse proxy
+5. ssl termination reverse proxy
+6. global server load balancing reverse proxy
+# load balancing reverse proxy example:-
+upstream backend_servers {
+    server backend1.example.com;
+    server backend2.example.com;
+    server backend3.example.com;
+}
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://backend_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# master process and worker process:-
+# master process - read and evaluate configuration files, manage worker processes, handle signals
+# worker process - handle client requests, perform actual processing of requests
+
+master process run as root user
+worker process run as non root user (user www-data)
+
+# default location of nginx files:-
+1. main configuration file - /etc/nginx/nginx.conf
+2. site-available directory - /etc/nginx/sites-available/
+3. site-enabled directory - /etc/nginx/sites-enabled/
+4. document root directory - /var/www/html/
+5. log files - /var/log/nginx/
+6. modules directory - /etc/nginx/modules/
+7. mime types file - /etc/nginx/mime.types
+8. ssl certificates directory - /etc/nginx/ssl/
+
+# access logs = who requested what and when
+/var/log/nginx/access.log
+# error logs = errors encountered by nginx
+/var/log/nginx/error.log
+
+=========================================Rate limiting in nginx=========================================
+# rate limiting in nginx is used to control the rate of incoming requests from clients to prevent abuse and ensure fair usage of server resources.
+
+# to limit the number of requests from a single IP address
+http {
+    limit_req_zone $binary_remote_addr zone=mylimit:10m rate=5r/s;
+
+    server {
+        location / {
+            limit_req zone=mylimit burst=10 nodelay;
+            proxy_pass http://backend;
+        }
+    }
+}
+
+# limit_req_zone Defines a shared memory zone to track requests.
+limit_req_zone $variable zone=name:size rate=rate;
+
+$variable → usually $binary_remote_addr (client IP)
+Zone=name:size → memory zone for tracking clients
+rate → max requests per second
+
+# limit_req Applies the limit to a location or server.
+limit_req zone=name [burst=number] [nodelay];
+
+zone → must match limit_req_zone
+burst → allows temporary extra requests
+nodelay → processes burst requests immediately (default is delayed)
+
+# limit_req_status 429; # to return 429 status code when rate limit exceeded
+
+

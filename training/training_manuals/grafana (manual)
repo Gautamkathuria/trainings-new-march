@@ -1,0 +1,60 @@
+# to create a grafana container write docker compose file:
+services:
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: always
+    env_file:
+      - ./.env/grafana.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+      - ./grafana.ini:/etc/grafana/grafana.ini //commented if using env file
+    networks:
+      - monitoring_net
+networks:
+  monitoring_net:
+    driver: bridge
+
+# create .env/grafana.env file to store environment variables:
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=admin
+
+# chmod -R 776 grafana_data
+
+# create contaier:
+docker compose up -d
+# access grafana using http://localhost:3000
+# login using admin/admin
+
+# now add data source and dashboards as per requirement
+# add prometheus as data source using http://prometheus:9090
+go to configuration -> data sources -> add data source -> select prometheus -> set url to http://prometheus:9090 -> save & test 
+# import dashboards from grafana.com
+go to + -> import -> enter dashboard id from grafana.com -> load -> select prometheus as data source -> import
+
+# the dashboards id are 1860 (node exporter), 6417 (cAdvisor), 763 (prometheus) etc.
+# now you can monitor your containers using grafana dashboards
+
+============================set up alerts for email notification=============================
+
+# then go to alerting -> alert rules -> create alert rule -> set conditions and notifications -> save
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+# now you will create contact points for notifications
+go to alerting -> contact points -> add contact point -> set type (email) -> set addresses -> save and test
+
+#now create grafana.ini file to configure grafana settings:
+# add this in your garafana.env no need og grafana.ini file
+
+
+
+=====================Now create alert rule for slack notification=============================
+
+# then go to alerting -> alert rules -> create alert rule -> set conditions and notifications -> save
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+# now you will create contact points for notifications
+go to alerting -> contact points -> add contact point -> set type (slack) -> set webhook url -> save and test
+
+# create slack webhook url:
+go to your slack workspace ->click settings/admin-> apps and workflow -> search for incoming webhooks -> add to slack -> select channel -> add incoming webhook -> copy webhook url -> use it in grafana contact -> choose slack as type -> paste webhook url -> save and test

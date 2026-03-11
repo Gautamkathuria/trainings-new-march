@@ -1,0 +1,174 @@
+# create ek cluster -> custom -> auto mode (off) -> name -> -> iam -> standard -> vpc -> subnets -> private endpoint -> add ons -> create
+
+# now create node groups 
+eks cluster id -> compute -> node group -> create -> name -> ami type -> instance type -> number of nodes (min, desired, max) -> disk size -> next -> iam role (create new) -> next -> networking (select subnets) -> next -> review and create
+
+# now create an instance using bastion 
+
+sg -> bastion-sg -> vpc same as eks cluster -> inbound rules -> ssh 22 from my ip -> create security group
+
+# now edit the eks sg 
+sg -> eks cluster sg -> inbound rules -> add rule -> type: all traffic, protocol: all, port range: all, source: bastion-sg -> save rules
+
+# now launch an ec2 instance
+ec2 -> launch instance -> name: bastion-host -> amazon unbuntu -> instance type: t3.medium -> next -> configure instance details -> network: vpc same as eks cluster -> subnet: public subnet -> auto-assign public ip: enable -> next -> add storage -> next -> add tags -> key: name, value: bastion-host -> next -> configure security group ->   select an existing security group -> select: bastion-sg -> review and launch -> launch -> select key pair -> launch instances       
+
+# now connect to the bastion host using ssh
+ssh -i <path-to-key-pair> ubuntu@<bastion-public-ip>
+# now install aws cli and kubectl 
+sudo apt update
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo apt install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+
+
+# now install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+
+# now add a policy name ec2-eks-bastion(manually created) -> create role -> attach to the bastion instance role with below permissions
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "eks:DescribeCluster",
+            "Resource": "arn:aws:eks:ap-south-1:831926612453:cluster/my-eks-cluster-gautam"
+        }
+    ]
+}
+# now update ekscluster iam 
+eks id -> access -> attach policy -> ec2-eks-role -> attach -> give access -> amazoneksclusteradminpolicy
+
+# now create OIDC with cluster url then 
+ iam -> roles -> search for nodegroup role -> trust relationships -> edit trust relationship -> add below code in the statement array
+{    "Effect": "Allow",
+    "Principal": {
+        "Federated": "arn:aws:iam::831926612453:oidc-provider/oidc.eks.ap-south-1.amazonaws.com/id/EXAMPLED539D463                  EBDE1EXAMPLE"
+    },              
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+        "StringEquals": {
+            "oidc.eks.ap-south-1.amazonaws.com/id/EXAMPLED539D
+463EBDE1EXAMPLE:sub": "system:node:*
+        }
+    }
+}
+-> update trust policy
+# the policy we need to attach when we create role with oidc is 
+
+# now login to eks cluster from bastion host
+aws eks --region ap-south-1 update-kubeconfig --name my-eks-cluster-gautam
+# now test kubectl
+kubectl get nodes
+# now deploy cluster autoscaler
+kubectl apply -f cluster-autoscaler-autodiscover.yaml
+# now edit the cluster autoscaler deployment to add the cluster name
+kubectl -n kube-system edit deployment.apps/cluster-autoscaler
+# now add the below args under container spec
+        - --cluster-name=my-eks-cluster-gautam
+
+kubectl set env deployment/cluster-autoscaler   -n kube-system   AWS_REGION=ap-south-1
+   28  kubectl edit deployment cluster-autoscaler -n kube-system
+
+   kubectl logs -f -n kube-system -l app=cluster-autoscaler
+
+# create nginx-scale-test.yaml
+
+# kubectl apply -f nginx-scale-test.yaml
+# kubectl scale deployment nginx-deployment --replicas=10
+# kubectl get pods -o wide
+# kubectl delete -f nginx-scale-test.yaml
+
+ kubectl get nodes -w
+ kubectl get pods -l app=nginx-test
+
+ # now clean up
+    kubectl delete -f cluster-autoscaler-autodiscover.yaml
+
+
+==============================now create nginx-ingress with certbot ssl===============================
+
+# create a namespace
+kubectl create namespace nginx-ingress
+# now create a nginx-ingress deployment with service of type loadbalancer
+kubectl apply -f nginx-ingress-controller.yaml
+# now check the service to get the load balancer dns
+kubectl get svc -n nginx-ingress
+# now create a record in route53 to point to the load balancer dns
+# now create a certbot deployment to get ssl certs from letsencrypt
+kubectl apply -f certbot-deployment.yaml
+# now create a certbot cronjob to renew the certs
+kubectl apply -f certbot-cronjob.yaml
+# now create a nginx ingress resource to route traffic to the nginx ingress controller
+kubectl apply -f nginx-ingress-resource.yaml
+# now test the nginx ingress with ssl
+# now clean up
+kubectl delete -f nginx-ingress-resource.yaml
+kubectl delete -f certbot-cronjob.yaml
+kubectl delete -f certbot-deployment.yaml
+kubectl delete -f nginx-ingress-controller.yaml
+kubectl delete namespace nginx-ingress
+
+
+=================================create nginx-ingress with certbot ssl using helm =================================
+# add ingress nginx repo
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+# now install ingress nginx with certbot
+helm install nginx-ingress ingress-nginx/ingress-nginx --namespace nginx-ingress --create-namespace --set controller.publishService.enabled=true
+# now check the service to get the load balancer dns
+kubectl get svc -n nginx-ingress
+
+2. Add Helm Repositories
+# Add NGINX Ingress Helm repo
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+# Add Cert-Manager Helm repo
+helm repo add jetstack https://charts.jetstack.io
+
+# Update Helm repos
+helm repo update
+
+3. create nginx-deployement, service and ingress and website.
+# create docker image for nginx website and push it to docker hub
+
+4. kubectl apply -f nginx-deployment.yaml
+kubectl apply -f nginx-service.yaml
+kubectl apply -f nginx-ingress.yaml
+
+5. # Test NodePort
+kubectl get svc -n my-app
+curl http://<worker-node-ip>:31080/
+
+6. Install NGINX Ingress Controller via Helm
+# Create ingress namespace
+kubectl create namespace ingress-nginx
+
+# Install using Helm
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+    --namespace ingress-nginx \
+    --set controller.publishService.enabled=true
+
+# Check pods
+kubectl get pods -n ingress-nginx
+
+7. now edit the sudo vi /etc/hosts file in local machine to add the domain name
+
+# now add loadbalancer using aws 
+create load balncaer and sg and allow 80 and 443 for load balancer
+
+create lb for worker node with port 31080 and target group with port 31080 and then register the worker nodes in target group
+
+now attach lb dns with godday cname record
+
+now nslookup the domain name and it should point to the load balancer dns
+
+copy the ip and paste it in sudo vi /etc/hosts file with the domain name nginx.local
+
+now test it in browser http://nginx.local and it should work.
+

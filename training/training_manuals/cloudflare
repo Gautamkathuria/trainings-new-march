@@ -1,0 +1,5 @@
+#======================== add godaddy domain to cloudflare ========================
+
+1. go to cloudflare -> add -> onboard a domain -> quick scan  -> type domain name -> block on all pages.
+2. copy the nameservers -> add to godaddy -> update 
+# wait until update.

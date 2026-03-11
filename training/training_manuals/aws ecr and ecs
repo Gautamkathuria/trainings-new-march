@@ -1,0 +1,251 @@
+# explaination of :- m6a.4xlarge
+
+m - Instance Family: This is the first letter and indicates the primary purpose of the instance family. m stands for General Purpose.
+6 - Generation: The number indicates the hardware generation. A higher number means a newer, more powerful, and often more cost-effective generation. m6 is newer than m5.
+a - Processor Type: This optional letter indicates the type of processor.
+a = AMD processors
+i = Intel processors
+g = AWS Graviton (ARM-based) processors
+.4xlarge - Instance Size: This determines the amount of resources (vCPU, Memory, Networking Bandwidth) allocated to the instance. Sizes typically double with each step (e.g., large, xlarge, 2xlarge, 4xlarge).
+
+
+# types of volumes:-
+1️⃣ General Purpose SSD (gp3 / gp2)
+2️⃣ Provisioned IOPS SSD (io2 / io1)
+3️⃣ Throughput Optimized HDD (st1)
+4️⃣ Cold HDD (sc1)
+
+# =========================== AWS ecr ================================================
+# create aws ecr in aws console:-
+1. create a registry -> view push commands
+
+# now create image from the dockerfile:-
+1. docker build -t <image_name> .
+2. aws ecr create-repository \
+    --repository-name my-app \
+    --region us-east-1
+
+3. docker tag <image_name>:latest <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repository_name>:latest
+4. aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+5. docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repository_name>:latest
+
+aws ecr get-login-password --region us-east-1 | docker login \
+    --username AWS \
+    --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+
+docker tag my-app:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:latest
+docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app:latest
+
+
+
+# =================================== AWS ecs =============================
+# now create aws ecs in aws console:-
+1. create a cluster -> create
+2. create a task definition -> select fargate -> configure task and container definitions -> add container -> provide image url from ecr -> set memory and cpu -> create
+3. now create a service inside cluster  -> select fargate -> select task definition created above -> next step -> set number of desired tasks -> next step -> next step -> create service
+4. now go to cluster -> select service created above -> click on tasks -> select the running task -> click on public ip to see the application running
+5. to update the application, repeat the steps to create a new image and push to ecr, then update the service in ecs to use the new image.
+# now access the application using the public ip of the running task.
+
+
+
+
+docker build -t new-backend .
+ 2384  docker images
+ 2385  cd ..
+ 2386  cd frontend/
+ 2387  docker build -t new-frontend .
+ 2388  docker images
+       aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 831926612453.dkr.ecr.ap-south-1.amazonaws.com
+
+ 2389  aws ecr create-repository --repository-name test2-frontend-latest
+ 2390  aws ecr create-repository --repository-name test2-backend-latest
+ 2391  docker tag 6c9605f3ef3a 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-frontend:v1
+ 2392  docker tag d5139af2db5b 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend:v1
+ 2393  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-frontend:v1
+ 2394  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-frontend-latesest:v1
+ 2395  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend-latest
+ 2396  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend-latest:v1
+ 2397  docker tag 6c9605f3ef3a 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-frontend-latest:v2
+ 2398  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-frontend-latest:v2
+ 2399  docker tag d5139af2db5b 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend-latest:latest
+ 2400  docker tag d5139af2db5b 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend-latest:v2
+ 2401  docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/test2-backend-latest:v2
+ 2402  aws secretsmanager list-secrets --region ap-south-1
+ 2403  cd ..
+ 2404  cd backend/
+ 2405  ls
+ 2406  cat server.js 
+ 2407  cd ..
+ 2408  cd frontend/
+ 2409  ls
+ 2410  cd src/
+ 2411  cat App.js 
+ 2412  history
+gautam@gautam:~/Desktop/project/ecs/frontend/src$ 
+
+
+# ============================== create frontend, backend and mysql rds ==========================
+1. create docker compose file for backend and frontend ad envs are here\
+# MySQL
+MYSQL_HOST=myapp-db2.c32yqq8gsacb.ap-south-1.rds.amazonaws.com
+MYSQL_USER=admin
+MYSQL_PASSWORD=password123
+MYSQL_DB=myapp
+
+# Backend
+BACKEND_PORT=4000
+
+# Frontend
+REACT_APP_BACKEND_URL=http://backend:4000
+
+2. docker-compose up -d
+
+3. create a env.js file in frontend public folder to access the backend url from rds
+window._env_ = {
+  REACT_APP_BACKEND_URL: "http://13.201.169.74:4000" (ip of backend task server)
+};
+
+4. create ecr for frontend and backend and push the images frpm above commands.
+
+# now create mysql rds in aws console:-
+1. create database -> standard create -> mysql -> free tier -> give db instance identifier, master username and password -> -> sg (3306)-> next step -> next step -> create database
+
+# now create secret in aws secret manager:-
+1. store a new secret -> other type of secret -> key/value pairs -> add the following
+MYSQL_HOST : myapp-db2.c32yqq8gsacb.ap-south-1.rds.amazonaws.com  (this is endpoint of mysqldb)
+MYSQL_USER : admin
+MYSQL_PASSWORD : password123
+MYSQL_DB : myapp
+-> next -> give secret name myapp/mysql -> next -> next -> store
+
+# copy the arn of the secret created above and add it to the backend task definition as environment variables from secrets
+
+# now create iam role for ecs task to access secret manager:-
+1. create role -> select trusted entity as ecs task -> next -> attach policies -> search for secretmanager read only -> next -> give role name amazonEcsTaskExecutionRole and a policy that i given below -> create role
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:GetSecretValue"
+            ],
+            "Resource": "arn:aws:secretsmanager:ap-south-1:831926612453:secret:mysql3-PTx7z8" (secret manager ARN)
+        }
+    ]
+} # name it as allowsecretsmanageraccess 
+
+# now create a iam role for backend ecs task to access rds:-secret 
+1. create role -> select trusted entity as ecs task -> next -> attach policies -> search for awssecretmanagerclientfullaccess and secretmanagerreadwrite and abve created policy -> next -> give role name backendtaskrole  -> create role
+
+# now created ecs cluster with backend and frontend task definitions and services.
+1. create cluster -> networking only -> give cluster name myapp-cluster -> create
+2. create sg -> frotend sg -> inbound rule -> custom 3000 from anywhere -> create
+3. create sg -> backend sg -> inbound rule -> custom 4000 from frontend sg -> create
+# task definiton for backend:-
+4. create task definition -> fargate -> task name backend-task-def -> task role backendtaskrole -> execution role amazonEcsTaskExecutionRole -> add container -> give container name backend-container -> image url from ecr -> memory 512 cpu 256 -> port mapping 4000 tcp -> environment variables -> secret name  -> valuefrom -> secret arn -> add -> create
+MYSQL_DB = valueFrom = arn:aws:secretsmanager:ap-south-1:831926612453:secret:mysql3-PTx7z8:MYSQL_DB:: 
+MYSQL_HOST = valueFrom = arn:aws:secretsmanager:ap-south-1:831926612453:secret:mysql3-PTx7z8:MYSQL_HOST:: 
+MYSQL_PASSWORD = valueFrom = arn:aws:secretsmanager:ap-south-1:831926612453:secret:mysql3-PTx7z8:MYSQL_PASSWORD:: 
+MYSQL_USER = valueFrom = arn:aws:secretsmanager:ap-south-1:831926612453:secret:mysql3-PTx7z8:MYSQL_USER:: 
+#add sg to the task definition -> create
+
+# task definiton for frontend:-
+5. create task definition -> fargate -> task name frontend-task-def -> task role none -> execution role amazonEcsTaskExecutionRole -> add container -> give container name frontend-container -> image url from ecr -> memory 512 cpu 256 -> port mapping 3000 tcp -> add -> create
+#add sg to the task definition -> create
+
+# now create services for backend and frontend in the cluster created above:-
+6. create service -> fargate -> backend-service -> backend-task-def -> revision latest -> next step -> desired tasks 1 -> next step -> next step -> create service
+7. create service -> fargate -> frontend-service -> frontend-task-def -> revision latest -> next step -> desired tasks 1 -> next step -> next step -> create service
+
+# now go to tasks -> select the running task of backend -> copy the public ip and test the backend 
+# same for frontend task
+
+
+
+# =================================== take pull from ecr to another instance ============
+1. launch a instance 
+2. create iam role
+policy - AmazonEC2ContainerRegistryReadOnly
+attach this policy to ec2 -> action -> securit -> modify iam role -> select
+
+3. ssh into instance 
+**install docker**
+sudo apt install docker.io
+
+**install aws-cli**
+a. curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+b. sudo apt install -y unzip
+c. unzip awscliv2.zip
+d. sudo ./aws/install
+e. aws --version
+f. aws sts get-caller-identity
+
+# now go to jenkins add credentials 
+type = ssh with username
+id = ec2-ssh
+username = ubuntu
+secret-key = paste content of kuber-key.pem (keyfile attach to ec2)
+
+# install plugin ssh-agent
+
+# now set up jenkins pipeline
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "ap-south-1"
+        ACCOUNT_ID = "082447916188"
+        REPO_NAME = "my-app"
+        IMAGE_TAG = "3"
+        EC2_HOST = "52.23.185.158"
+    }
+
+    stages {
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-ssh']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} '
+                    
+                    # Login to ECR
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin \
+                    ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    # Pull latest image
+                    docker pull ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${IMAGE_TAG}
+
+                    # Stop old container (if running)
+                    docker stop my-app || true
+                    docker rm my-app || true
+
+                    # Run new container
+                    docker run -d -p 80:80 --name my-app \
+                    ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${IMAGE_TAG}
+                    
+                    '
+                    """
+                }
+            }
+        }
+    }
+}
+
+# copy the instance ip to ec2_host (new instance ip)
+
+# run the pipeline
+
+
+
+
+
+
+
+
+
+
+

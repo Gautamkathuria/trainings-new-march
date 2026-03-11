@@ -1,0 +1,122 @@
+#postgres specific docker commands
+docker compose exec postgres_db bash
+docker compose logs -f postgres_db
+docker compose exec postgres_db psql -U admin -d mydb
+
+
+# create a docker compose file
+services:
+postgres:
+    image: postgres:16
+    container_name: postgres_db
+    restart: always
+    env_file:
+      - ./.env/postgres.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db_backup/postgresback:/tmp/
+    networks:
+      - db_net
+networks:
+  db_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+# Save the above content in a file named docker-compose.yml
+# Then create a .env/postgres.env file to store postgres environment variables
+POSTGRES_USER: admin
+POSTGRES_PASSWORD: admin123
+POSTGRES_DB: mydb
+# Finally run the docker compose up command to start postgres container
+docker-compose up -d
+# To access postgres container run the following command
+docker exec -it <container_name> psql -U user_name -d database_name
+#replace <container_name> with postgres_db, user_name with admin and database_name with mydb
+sudo docker compose exec postgres_db psql -U admin -d mydb
+
+# see all dbs
+\l
+#create database
+CREATE DATABASE school;
+#connect to database
+\c school;
+# Create a new table
+CREATE TABLE students (id SERIAL PRIMARY KEY, name VARCHAR(100), age INT);
+# Insert data into the table
+INSERT  INTO students (id, name, age) VALUES (1,'Alice', 23);
+# Insert data into the table
+INSERT INTO students (name, age) VALUES ('John Doe', 20);
+INSERT INTO students (name, age) VALUES ('Jane Smith', 22);
+INSERT INTO students (name, age) VALUES ('Alice Johnson', 19);
+# Query data from the table
+SELECT * FROM students;
+
+#to show tables
+\dt
+#to describe table
+\d students
+
+#to creat a user with specific privileges
+CREATE USER gautam WITH PASSWORD 'mypassword';
+GRANT SELECT, INSERT ON TABLE students TO gautam;
+\du gautam  
+
+#login with new user
+psql -U gautam -d school -h localhost -W
+
+#create user for a specific database with all privileges
+CREATE USER raj WITH PASSWORD 'rajpassword';
+GRANT ALL PRIVILEGES ON DATABASE school TO raj;
+
+#to create a backup of database from within container
+pg_dump -U root -d mydb > mydb_backup.sql
+pg_dump -U gautam -d mydb -f /tmp/mydb_backup.sql
+
+#to restore a database from backup within container
+psql -U root -d mydb < mydb_backup.sql
+
+# to login postgres using guitool like pgadmin
+pgadmin:
+    image: elestio/pgadmin
+    container_name: pgadmin
+    restart: unless-stopped
+    env_file:
+      - ./.env/pgadmin.env
+    ports:
+      - "8083:80"
+    networks:
+      - db_net
+    depends_on:
+      - postgres
+# create a .env/pgadmin.env file to store pgadmin environment variables
+PGADMIN_DEFAULT_EMAIL=admin@gmail.com
+PGADMIN_DEFAULT_PASSWORD=admin123
+
+#postgres.env
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin123
+POSTGRES_DB=mydb
+
+# then run the compose file
+docker compose up -d
+
+# then create a user in pgadmin 
+CREATE USER gautam WITH PASSWORD 'mypassword';
+GRANT SELECT, INSERT ON TABLE students TO gautam;
+\du gautam 
+
+# then access pgadmin at http:\\localhost:8083 
+
+
+# then add a new server in pgadmin with the following details:-
+# General:
+# Name: Local Postgres
+# Connection:
+# Host name/address: postgres_db
+# Port: 5432
+# Maintenance database: mydb
+# Username: gautam
+# Password: mypassword

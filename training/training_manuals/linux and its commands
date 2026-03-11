@@ -1,0 +1,492 @@
+# linux directory structures
+Directory	Description
+/bin	       important binary applications
+/boot	       boot configuration files, kernels, and other files needed at boot time.
+/dev	       System device files.
+/etc	       configuration files, startup scripts, etc.
+/home	       List of home directories for different users
+/lib	       system libraries, shared libraries
+/lost+found	 a lost+found system for files that exist under the root (/) directory
+/media	    automatically mounted (loaded) partitions on your hard drive and  media such         as CDs, digital cameras, etc.
+/mnt	       manually mounted filesystems on your hard drive
+/opt	       3rd part applications to be installed
+/proc	       Maintains information about the state of the system, including currently running processes.
+/root	       root user's home directory.
+/sbin	       important systeControls what info about the referring page is sent (no-referrer, strict-origin-when-cross-origin)m binaries
+/srv	       contain files that are served to other systems
+/sys	       system files
+/tmp	       temporary files
+/usr	       applications and files that are mostly available for all users to access
+/var	       variable files such as logs and databases
+
+# distributions in linux :-
+linux, linux mint, ubuntu, debian, fedora, redhat
+
+# distros in linux :- (versions of linux) --
+ Desktop distros :- ubuntu, linux, fedora, kali
+ Server distros :- centos, debian, rhel
+ lightweight distros :- Lubuntu
+
+Debian-based = Debian, Ubuntu, Linux Mint
+Red Hat-based = RHEL, CentOS, Fedora, AlmaLinux
+Arch-based = Arch Linux, Manjaro
+
+# package management in linux --
+Debian - apt/dpkg   (.deb)
+redhat/fedora - yum/dnf/rpm   (.rpm)
+arch linux, gentoo - pacman
+
+apt - advance apackage tool
+dbkg - debian package
+yum - yellowdog updater
+dnf - dandified yum
+rpm - redhat package management
+
+# ubuntu desktop environment :-
+GNOME, KDE plasma, xubuntu(Xfce), MATE, cinnamon
+
+-- env | grep -i desktop = to see desktop environment
+
+# architecture of linux :-
+application -> shell -> kernal -> hardware
+
+# =============================== user and group operatios ===============================
+
+# umask = user file creation mask
+It controls the default permissions of new files and directories that you create.
+
+
+# users :- 
+types :- root, system, normal
+# UID = user identifier
+UID 0 = reserved for root
+UID 1 - 999= system account used by services
+UID 1000+ = regular users
+# UID and users stored in  cat etc/passwd
+
+# groups :-
+types :- primary, secondary
+# GID = group identifier
+GID 0 = root
+GID 1-99 = system groups
+GID 100-999 = service/system groups
+GID 1000+ = Regular user group
+GID 65534 = nobody group 
+# GID and groups stored in  cat etc/group
+
+
+# user infromation files:-
+1. etc/passwd = details about users
+2. etc/shadow = encrypted password and password policies
+3. etc/group = detail about group
+4. etc/gshadow = secure group passwords and admin info
+5. etc/sudoers = sudo permission for user and groups
+
+# commands 
+1. id  = to check uid and gid of user
+2. id gautam = to check uid and gid  of specific user
+3. users = to see users
+4. groups = to see groups 
+5. getent group <group name> = to see details about group
+6. sudo useradd gautam = to create user without homedirectory
+7. sudo useradd -m -s /bin/bash gautam = create user with home directory
+   -m = create home directory
+   -s = set login shell
+8. sudo adduser gautam = to create user with home directory
+9. sudo passwd username = to set password
+10. sudo groupadd groupname = to create a group
+11. adduser username groupname - add user to a specific group
+12. who - tells who loggedin 
+13. usermod --lock username - to lock a user
+14. usermod --unlock username - to unlock a user
+15. sudo usermod -aG groupname username - add a user to a group
+15. sudo groupmod -g NEW_GID groupname - change a group id
+16. sudo usermod -g newgroup username - change user's primary group
+18. sudo groupmod -n newname oldname - change a group name
+19. sudo deluser username - to delete a user
+20. sudo deluser --remove-home username - dlt a user and also its home dir
+21. sudo deluser username groupname - dlt user from a specific group
+22. sudo delgroup groupname - to dlt a specific group
+23. sudo usermod -g primary group -G group1,group2 username - set both primary and secondary group at one time
+24. sudo usermod -aG group1,group2,group3 username - add multiple secondary groups
+25. sudo usermod -G group1,group2 username - replace all secondary group
+26. sudo usermod -g groupname username - add primary group
+27. psswd username - to modify psswd
+28. sudo usermod -l newname oldname = to rename a user
+29. sudo groupmod -n newgroup oldgroup = to rename a group
+30. sudo userdel name = to delete a user
+     -r = to delete home directory
+31. sudo chown :groupname file = to change group of the file
+32. sudo chown user:group file = change both group and user
+
+
+# ========================= file permisions =========================
+# ===ssh -i flutterbye-dev-key.pem ubuntu@52.7.252.254===
+
+# for files = chmod 644 filename
+# for directories = chmod 755 dir-name
+# private ssh key = chmod 600 key-name or chmod 400 keyname
+# public ssh key = chmod 644 key-name
+# .ssh dir = chmod 700 .ssh
+# authorized keys = chmod 600 authorized_key
+
+ 1. chmod 700 ~/.ssh = .ssh directory permission
+ 2. chmod 600 ~/.ssh/authorized_keys
+ 3. chmod 600 ~/.ssh/id_rsa
+ 4. chmod 644 ~/.ssh/id_rsa.pub
+ 5. chmod 755 /home/<username>
+
+# ===File Permissions==
+Permission types:-
+r=read(4)
+w=write(2)
+x=execute(1)
+
+Permission Groups:-
+u=users
+g=group
+o=others
+
+644 = create a file with user
+775 = create a dir with user(when gp and user is same)
+
+755 = create a dir with root
+644 = create a file with root
+
+
+1. ls -l = to view permissions
+2. chmod = to change the permissions 
+   -R = to all files inside
+3. chmod u=rwx,g=rx,o=r filename = to change the permission
+4. sudo chown username filename = to change the owner of the file
+5. sudo chown :groupname file = to change group of the file
+6. sudo chown user:group file = change both group and user
+
+*umask* (User File-Creation Mode Mask) defines which permissions are REMOVED when a new file or directory is created.
+
+# =========================package management ============================
+
+apt update = update the apt database with new links and version
+apt upgrade = install the latest version
+
+/etc/apt/sources.list = apt database kept
+/etc/apt/sources.list.d = corrupt scene
+
+1. sudo apt install nginx=version
+2. apt list --installed nginx
+3. apt search nginx
+4. apt remove nginx
+5. apt purge nginx
+6. apt list -a nginx
+
+1. dpkg -i nginx.deb
+2. dpkg -r packagename
+3. dpkg -P packagename
+
+# install using sources
+1. wget -> tar -> cd
+2. configure = ./configure
+3. make = compile the software
+
+# The ./configure script checks your system for required tools and libraries, sets build options, and generates Makefiles so the software can be compiled and installed correctly.
+
+# make is a build automation tool that compiles source code into binaries based on instructions in a Makefile.
+
+./configure       # prepare the build and generate Makefile
+make              # compile source code into binaries
+make test         # optional, run built-in tests
+sudo make install # install binaries to system paths
+
+# ========================================= sudo permissions =============================
+1. sudo -V = version
+   -K = make sudo to run commands without password for 15 mins.
+   -l = list all permissions
+2. sudo su username = change user
+3. sudo -u [user] [command] =  run command with that user without change user
+4. cat /etc/sudoers 
+5. cat /etc/sudoers.d/
+# ports under 1024 called privileged ports 
+
+# =============================== Environment ================================
+1. printenv/env  = to see all global environments
+2. set = Lists Shell Variables, Functions, AND Environment Variables.
+3. echo $SHELL = to see a specific variables usign echo
+4. export/set name=value,  to set global environment variables
+5. name=value , to set local enironment
+6. unset name = to unset env 
+
+~/.bashrc = only for user loads everytime terminal is open contains environmnet, aliases, functions
+
+~/.profile = only for user loads when we login gui login, console login, ssh login contains environment path, default applications(editor) , locale & language, security and session settings, umask.
+
+/etc/profile = for all users loads when we login using gui login, console login, ssh login, contains global variables, contains global path setup, umask, modular configs, global language settings.
+
+/etc/profile.d = to edit this files not the main cat /etc/profile make folders in this.
+
+# =========================== File Management ========================================
+
+# readlink -f filename = to see the path of a file
+1. cat filename = view content
+2. less filename = view content with scrolling
+3. more filename = view content page by page
+4. head -n 10 filename = show first 10 lines
+    -v = show filename
+5. tail -n 10 filename = show last 10 lines
+6. tail -n 10 -f file.log = to show live logs
+7. stat filename = to see file info
+8. ln -s filename = to create a soft link
+9. ln filename = to create hard link
+
+1. grep text = to search a text
+   -i = case sensitive search
+   -r = recursive
+
+1. tar -czvf file.tar.gz dir/
+2. tar -xzvf file.tar.gz
+
+# ==================================== Process management ======================
+
+1. ps = to see process
+   -a = all
+   -u = user-oriented format
+   -x = include backgraound process
+2. ps -ef = to see process
+     -e = 
+     -f = 
+3. pgrap nginx = to find nginx
+4. ps -l = to see priority
+
+1. kill  PID = to kill a process using PID
+2. kill -15 PID = to kill a process
+       -15 = safe kill
+3. kill -9 PID = force kill
+4. pkill name = kill by process name
+    -u = username, kill by username 
+5. killall nginx = kill all nginx process
+6. lsof -i :portnumber = kill a process using portnumber
+
+
+# cd /proc = contains live system and process information, numbers and named files
+
+1. sleep 60 = start a process
+2. sleep 60 & = running process in bg
+3. bg = to see a process in bg
+4. fg = to get bg process in fg
+5. jobs = to see process stopped or bg
+6. fg 1 = to get first process foreground
+7. 
+
+
+# nohup = Allows process to keep running after logout
+1. nohup command & = it will run a comand and if connection is lost or logout then command is running we can see the output in nohup.out
+2. nohup ENV=prod PORT=8080 java -jar app.jar > app.log 2>&1 &
+ set environment variables
+ 
+ Shell
+ ├─ sets ENV & PORT
+ ├─ forks
+ ├─ nohup ignores SIGHUP
+ ├─ execs java process
+ └─ process runs in background
+=> nohup runs when we create a job 
+
+# disown Remove a job from the shell’s job table so it survives logout
+After a job is already running
+Does not redirect output; goes to terminal unless manually redirected
+Jobs you already started and later decide to keep running
+ports under 1024 called privileged ports (for root user)
+sleep 60 &
+jobs
+disown %1
+exit
+ps aux | grep sleep
+
+# => screen:-
+screen is a terminal multiplexer that allows you to:
+
+✔ Run processes in the background
+✔ Keep sessions alive even after logout
+✔ Reconnect to running sessions
+✔ Run multiple terminals inside one SSH connection
+
+1. screen = unname session.
+2. screen -S mysession = name session
+3. screen -ls
+4. screen -r mysession = reattach session
+5. ctrl + A , d = detach session
+6. screen -S myapp -dm node app.js = run command direct on screen
+7. screen -X -S new quit = to kill a session
+
+# => pm2 :- It mainly runs your apps in the background and keeps them alive, with extra features for monitoring and management.
+Runs in background ✅
+Keeps app alive (auto-restart) ✅
+Collects logs ✅
+Monitors performance ✅
+Starts apps on server boot ✅
+Manages multiple apps easily
+
+sudo npm install -g pm2 
+pm2 -v = version
+vi app.js
+pm2 start app.js --name myapp
+pm2 list = list aof app running in bg
+pm2 logs myapp = logs
+pm2 monit = monitoring
+
+# =>setsis:- start a process in new session
+1.setsid node app.js - start a process
+
+
+# ================================== SSH ====================================
+1. ifconfig = to check the ip address
+      - lo = loopback address
+      - wlp = wifi address
+      - eno1 = ethernet address
+ 2. curl ifconfig.me = gives system public address
+    curl -4 ifconfig.me = to show ipv4 address
+    
+              ===SSH password based login===
+ 3. ssh username@ip = connect remote server
+ 4. ssh -i key.pem ubuntu@Public_IP = if using ssh-key
+                  ===SSH key based login===
+ 5. ssh-keygen -t rsa -b 4096 = to generate rsa keys
+        
+     - id-rsa = to save pvt keys
+     - id-rsa.pub = to save public keys
+ 6. ssh-copy-id user@ip = to copy the ip in remote
+ 7. ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub - rereated the pub key if deleted
+ => if key is deleted, before we have to take backup of the ssh-keys we have to copy the ssh keys to our drive.
+ 
+ => SSH permissions:-
+ 1. chmod 700 ~/.ssh = .ssh directory permission
+ 2. chmod 600 ~/.ssh/authorized_keys
+ 3. chmod 600 ~/.ssh/id_rsa
+ 4. chmod 644 ~/.ssh/id_rsa.pub
+ 5. chmod 755 /home/<username>
+
+=>SSH config file:- (shortcuts)
+Host myserver
+    HostName 192.168.1.55
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+now, ssh myserver
+
+# ssh tunneling = SSH tunneling (also called SSH port forwarding) is a method to securely send network traffic from your local machine to a remote server over an encrypted SSH connection.
+
+1. ssh -i abc.pem -L 9999:localhost:8080 ubuntu@13.201.63.98
+
+-L	                    Local port forwarding
+9999 (local)	        Local machine port you will connect to
+localhost:8080      	  jenkins host & port on remote instance
+ubuntu@<REMOTE_IP>	  SSH login to AWS instance
+-i mykey.pem	        Use private key to login
+
+2. ssh -i abcd.pem -R 8081:localhost:8080 ubuntu@3.84.130.87
+
+-R                    Remote port forwarding
+8081 (remote)         Remote machine port you will connect to
+localhost:8080        localhost jenkins running
+ubuntu@<REMOTE_IP>	  SSH login to AWS instance
+
+
+# first go to sudo nano /etc/ssh/sshd_config (only for remote forwarding)
+set 
+GatewayPorts yes
+AllowTcpForwarding yes
+
+sudo systemctl restart ssh
+exit
+ssh -i abcd.pem -R 8081:localhost:8080 ubuntu@3.84.130.87
+
+
+
+# types of ssh keygen algorithm
+1. RSA
+2. ED25519  
+3. ECDSA
+4. DSA
+
+# ssh client configuration files
+
+cd ~/.ssh/config
+Host myserver
+    HostName 192.168.1.10
+    User gautam
+    Port 22
+    IdentityFile ~/.ssh/id_rsa
+    ForwardAgent yes (ForwardAgent lets you use your local SSH keys on a remote server without copying the private key to that server.)
+
+then run as ssh myserver
+
+# create password and authenticate 
+
+1. to create a password for ubuntu user
+sudo passwd ubuntu
+
+2. go to cd /etc/ssh 
+3. sudo vi sshd_config
+4. passwordauthentication yes
+   publicauthentication no
+5. go to cd sshd_config.d 
+   sudo vi 60-------
+   passwordauthentication yes
+6. sudo systemctl restart ssh
+
+# ================================ sftp commands =======================================
+1. copy id_rsa.pub to /home/gautam/.ssh in oodles server 
+2. chmod 400 authorized-keys
+# download server to local
+3. sftp gautam@125.63.73.56
+4. get /opt/docker/details.txt
+   get /home/ubuntu/jenkins/test /home/gautam/Desktop/project/
+
+# upload local to server
+5. put filename
+
+# ======================= scp commands ===================================
+
+1. from local to server
+scp -i kuber-key.pem /home/gautam/Desktop/project/database/admner.tar ubuntu@54.91.144.216:/home/ubuntu/
+
+2. from server to local
+scp -i kuber-key.pem ubuntu@54.91.144.216:/home/ubuntu  /home/gautam/Desktop/project/database/admner.tar 
+
+
+
+# ========================= change ssh ports ==============================
+
+1. ssh into ec2-instance using port 22
+ssh -i abc.pem ubuntu@ip
+
+2. now go to change ssh config file
+sudo vi /etc/ssh/sshd_config
+
+3. change port 22 to 2222
+remove #port 22 to port 2222
+
+# now allow sg rule to 2222
+
+4. systemctl restart ssh
+5. systemctl restart daemon-reload
+6. ss -tulnp ssh
+
+7. now login in to ssh 
+ssh -i kuber-key.pem -p 2222 ubuntu@ip
+
+8. now do sftp as
+sftp -i kuber-key.pem -P 2222 ubuntu@ip
+
+# ================================== aws ssm management ===========================
+
+1. create a iam role 
+for ec2
+attach policy - AmazonSSMManagedInstanceCore
+name - ec2ssmrole
+
+2. launch a ec2 instance
+
+sg - empty
+launch
+
+3. stop the instance and restart the instance.

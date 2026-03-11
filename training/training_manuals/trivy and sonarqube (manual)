@@ -1,0 +1,177 @@
+SonarQube → Is your code well-written? 
+OWASP(Open Worldwide Application Security Project) → What are the common security risks? 
+Trivy → Is your app/image actually vulnerable right now?
+
+
+owasp scans security vulnerabilities in web applications,files and images, while trivy scans for vulnerabilities 
+in container images and filesystems. SonarQube is a code quality and security analysis tool that can be used to 
+identify bugs, code smells, and security vulnerabilities in your codebase.
+
+reports are saved inside the containers.
+
+# to create trivy container the docker compose file is:
+trivy:
+    image: aquasec/trivy:latest
+    container_name: trivy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: ["sleep", "infinity"]
+
+app:
+    image: nginx:latest
+    container_name: nginx-app
+    ports:
+      - "8080:80"
+
+# now run the compose file
+docker compose up -d
+# now exec into trivy container
+docker compose exec -it trivy sh
+# now scan the nginx-app container for vulnerabilities
+trivy image nginx:latest
+# to scan a specific image
+trivy image <image_name>:<tag>
+# to scan a filesystem
+trivy fs /path/to/directory
+# to generate report in json format
+trivy image -f json -o report.json nginx:latest
+# to generate report in html format
+trivy image -f template -o report.html --template "@contrib/html.tpl" nginx:latest
+
+# to run trivy without enter docker container
+docker exec -it trivy trivy image nginx:latest
+
+# to scan only high and critical vulnerabilities
+docker exec -it trivy trivy image \
+  --severity HIGH,CRITICAL \
+  nginx:latest
+
+# generate report in json
+docker exec trivy trivy image \
+  -f json \
+  -o /tmp/nginx-trivy.json \
+  nginx:latest
+# copy it out
+docker cp trivy:/tmp/nginx-trivy.json .
+
+=======================set up owasp zap proxy with docker compose=========================
+OWASP is a non-profit organization that defines application security risks, 
+standards, and best practices. It does not scan applications itself but provides
+frameworks like the OWASP Top 10 and tools such as ZAP that help teams identify and mitigate security vulnerabilities.
+
+# craete docker compose file with the following content
+zap:
+    image: zaproxy/zap-stable
+    container_name: zap
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./data/zap-reports:/zap/wrk
+    command: ["sleep", "9999999"]
+
+# now run the compose file
+docker compose up -d
+# now access owasp zap proxy at http://localhost:8090
+
+# now to scan a target website using owasp zap proxy
+# exec into zap container
+docker compose exec -it zap sh
+# now run the following command to scan the target website
+zap-cli quick-scan --self-contained --start-options '-config api.disablekey=true' http
+://example.com
+
+docker exec -it zap zap-baseline.py -t http://nginx-app:80 -r report.html
+# to generate report in html format
+zap-cli report -o /zap/wrk/owasp-zap-report.html -f html
+# to generate report in xml format
+zap-cli report -o /zap/wrk/owasp-zap-report.xml -f xml
+# copy the report to host machine
+docker cp zap:/zap/wrk/owasp-zap-report.html .
+# open the report in browser
+xdg-open owasp-zap-report.html
+
+# to scan a service running 
+docker compose exec zap zap-baseline.py -t http://app:80 -r zap-report.html
+
+=======================set up sonarqube with docker compose=========================
+# create a docker compose file with the following content
+sonarqube:
+    image: sonarqube:lts
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+      SONAR_SEARCH_JAVAOPTS: "-Xms512m -Xmx512m"
+      SONAR_WEB_JAVAOPTS: "-Xms512m -Xmx512m"
+    
+    volumes:
+      - ./sonarqube/data:/opt/sonarqube/data
+      - ./sonarqube/logs:/opt/sonarqube/logs
+      - ./sonarqube/extensions:/opt/sonarqube/extensions
+
+
+mkdir -p ./sonarqube/{data,logs,extensions}
+sudo chown -R 1000:1000 ./sonarqube
+chmod -R 755 ./sonarqube
+
+
+# now run the compose file
+docker compose up -d
+# now access sonarqube at http://localhost:9000
+# login with the following details:-
+# username: admin
+# password: admin
+# now set up jenkins to scan code using sonarqube
+# install sonarqube scanner plugin in jenkins
+# go to manage jenkins -> global tool configuration -> sonarqube scanners -> add sonarqube scanner
+# name: sonar-scanner
+# install automatically -> latest version
+# now go to manage jenkins -> configure system -> sonarqube servers -> add sonarqube
+# name: SonarQube
+# server url: http://sonarqube:9000
+# server url for localhost: http://host.docker.internal:9000
+and set up credentials 
+go to localhost:9000 -> login with admin/admin -> go to myaccounts -> security -> generate token -> copy the token and use it in jenkins credentials
+# now go to manage jenkins -> add credentials -> select secret text -> paste the token -> add
+# now go to manage jenkins -> configure system -> sonarqube servers -> add sonarqube -> select the credentials you just created
+# manage jenkins -> manage plugins -> installed -> sonarqube scanner -> configure -> sonarqube installation: sonarqube-scanner
+# now create a jenkins pipeline to scan code using sonarqube
+pipeline {
+    agent any
+
+    stages {  
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/Gautamkathuria/html.git'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=samplewebapp \
+                          -Dsonar.sources=.
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 60, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+}
+# now run the jenkins pipeline
+# after the pipeline is successful go to sonarqube dashboard to see the code analysis report

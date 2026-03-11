@@ -1,0 +1,378 @@
+# jenkins specific docker commands
+docker compose exec jenkins bash
+docker compose logs -f jenkins
+docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+sudo usermod -aG docker ubuntu
+
+
+
+# to create a jenkins using docker compose file is
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jenkins_data:/var/jenkins_home
+    networks:
+      - jenkins_net
+
+networks:
+  jenkins_net:
+    external: true
+# Save the above content in a file named docker-compose.yml
+
+# Finally run the docker compose up command to start jenkins container
+docker-compose up -d  
+# To access jenkins container run the following command
+docker exec -it <container_name> bash
+sudo docker compose exec jenkins bash
+
+# to see the jenkins logs run the following command
+docker logs -f <container_name>
+sudo docker compose logs -f jenkins
+
+# to see the running containers
+docker ps -a
+
+#give permission to jenkins_data folder
+# it gives permission to user with uid 1000 and gid 1000 because jenkins user inside the container runs with uid 1000 and gid 1000
+sudo chown -R 1000:1000 jenkins_data/
+# it gives read, write and execute permission to all users
+sudo chmod -R 755 jenkins_data/
+
+# To access jenkins web interface open your browser and go to http://localhost:8080
+# Follow the instructions to complete the setup.
+# to see the initial admin password run the following command
+#first enter the jenkins container using bash
+docker exec -it <container_name> bash
+sudo docker compose exec jenkins bash
+# then run the following command inside the container
+cat /var/jenkins_home/secrets/initialAdminPassword
+
+# or u can see th password using logs
+sudo docker compose logs -f jenkins
+
+
+======================== #create user using jenkins dashboard#========================
+1. Go to Manage Jenkins > Manage Users > Create User
+2. Fill in the user details and click Create User
+3. The new user will be created and can be used to log in to Jenkins
+
+#now assign roles to the user
+1. Go to Manage Jenkins > plugin Manager > Available > role based authorization strategy >install
+2. After installation, go to Manage Jenkins > Security > Authorization > Role-Based Strategy > Save
+3. Go to Manage Jenkins > Manage and Assign Roles > Manage Roles
+4. Create a new role (e.g., "role1") and assign permissions
+5. Go to Manage Jenkins > Manage and Assign Roles > Assign Roles
+6. Assign the created role to the user
+7. Save the changes
+# The user now has the assigned roles and permissions
+
+# =======================Creating nodes in jenkins=======================================
+# on ec2 instance(slave)
+1. ssh-keygen = to generate key
+   - ssh-keygen -t rsa -b 4096 = to generate rsa keys where 4096 is bits used
+2. cd /home/ubuntu/.ssh = to see keys
+3. hostname -i = to see host
+4. sudo systemctl status ssh 
+5. ping pub_ip
+6. nc -vz pub_ip post_no = to see port is running or not
+7. ssh-keygen -t rsa -b 4096 = to generate rsa keys where 4096 is bits used
+8. cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys = to copy public key to authorized key
+9. chmod 600 ~/.ssh/authorized_keys
+10. mkdir jenkins
+11. sudo chown ubuntu:ubuntu /home/ubuntu/jenkins
+12. sudo chmod 755 jenkins
+# now install java
+13. sudo apt update
+14. sudo apt install -y openjdk-17-jdk (bcs jar file used java and online agent)
+15. java --version
+
+
+# on server (master)
+# login to slave
+1. ssh -i flutterbye-dev-key.pem ubuntu@52.7.252.254
+# login to jenkins container
+2. sudo docker compose exec jenkins-jenkins-1 bash
+    sudo docker exec -it jenkins-jenkins-1 bash
+# make directory
+3. mkdir -p /var/jenkins_home/.ssh
+4. chmod 700 /var/jenkins_home/.ssh
+# now copy the keys to container
+5. ssh-keyscan 13.233.93.149 >> /var/jenkins_home/.ssh/known_hosts (fetch the ssh host-key of server(slave) and saves to that path given)
+6. chmod 644 /var/jenkins_home/.ssh/known_hosts
+
+
+# now in jenkins 
+1. go to manage-jenkins > nodes
+2. give name to node 
+3. name > description(anything) > no, of executors > remote directory(/home/ubuntu/jenkins) > labels(match from pipeline) > launch method(ssh) > host(pub_ip of slave)
+# now make credentials
+4. credentials > scope(global) > ID > description > username(ubuntu) > privatekey (copy pvt key i.e. id_rsa from slave) > save
+5. host keyverfication strategy(known hosts) > save
+6. now launch the node.
+
+# copy pvt key of local to jenkins and pub key to remote server(slave) 
+
+
+#=======================now create the pipeline with ssh-key============================
+# create a pipeline 
+# ssh github-url and credentials:-
+git credentialsId: 'github-jenkins
+url: "git@github.com:gautamkathuria-sudo/mypipeline.git" 
+
+# now open server(slave)
+# cd /home/ubuntu/.ssh
+# copy id_rsa.pub to github > settings > ssh and gpg keys > new ssh key > paste public key
+# copy id_rsa > jenkins > managejenkins > credentials > choose (ssh username and key) > id(github-jenkins) > username(git) > paste pvt ip > save
+
+# go to aws open ports 8081 or 8082(variabes) 
+# go to manage jenkins > security > Git Host Key Verification Configuration > choose(accept first connection) > save and build 
+
+# sudo chmod 666 /var/run/docker.sock
+# if u choose known hosts files then u have to login jenkins container
+1. sudo docker -it  exec myapp_container sh
+
+2. mkdir -p /var/lib/jenkins/.ssh/
+   chmod 600 ~/.ssh/known_hosts
+
+3. ssh-keyscan github.com >> ~/.ssh/known_hosts OR
+   ssh-keyscan 13.233.93.149 >> /var/lib/jenkins/.ssh/known_hosts
+
+4. sudo systemctl restart jenkins
+
+# create a pipeline with buld parameter
+parameters {
+        choice(
+            name: 'branch',
+            choices: ['main', 'development'],
+            description: 'Select the deployment environment'
+        )
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                echo "Selected branch: ${params.branch}"
+                echo 'Cloning repository...'
+
+                git(
+                    branch: "${params.branch}",
+                    credentialsId: 'github-jenkins',
+                    sh 'docker rm -f buildparam_container || true',
+                    url: "git@github.com:gautamkathuria-sudo/mypipeline.git"
+                )
+            }
+        }"""
+# now run the pipeline and select the branch from dropdown and run the build
+
+# now create a user who only have access to the frontend pipelines or backend pipelines
+1. Go to manage jenkins > create user 
+2. manage and assign roles > global roles > assign roles > give the user the role created > save
+3. item roles > role to add > pattern (^frontend.*$) > create
+4. assign roles > global roles > item roles > save
+
+======================== jenkins email approval setup========================
+# go to manage jenkins > plugin manager > available > email extension plugin > install without restart
+# go to manage jenkins > configure system > extended email notification
+# SMTP server: smtp.gmail.com
+# Default user e-mail suffix: @gmail.com
+# Use SMTP Authentication: checked
+# User Name: kathuriagagan96@gmail.com
+# Password: <app password>
+# SMTP port: 587
+# Use SSL: unchecked
+# Use TLS: checked
+# Test configuration by sending test e-mail to your email id
+# now create a pipeline with following code
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building...'
+            }
+        }
+        stage('Approval') {
+            steps {
+                script {
+                    def userInput = input(
+                        id: 'userInput', message: 'Approve Deployment?', parameters: [
+                            [$class: 'TextParameterDefinition', defaultValue: '', description: 'Enter your approval comments', name: 'Comments']
+                        ]
+                    )
+                    echo "User approved with comments: ${userInput}"
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+            }
+        }
+    }
+    post {
+        success {
+            emailext (  
+                subject: "Jenkins Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' - SUCCESS",
+                body: "The Jenkins job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' has completed successfully.",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
+        }
+        failure {
+            emailext (
+                subject: "Jenkins Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' - FAILURE",
+                body: "The Jenkins job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' has failed. Please check the Jenkins console for details.",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )   
+        }
+    }
+}
+# now run the pipeline and check your email for approval request
+# now approve the deployment from email and check the jenkins console for deployment status
+or 
+pipeline {
+    agent any
+
+    stages {
+        stage('Pull Code from GitHub') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'git-id',
+                    url: 'git@github.com:gautamkathuria-sudo/OIDC.git'
+            }
+        }
+
+        stage('Approval Request') {
+            steps {
+                script {
+                    // Identify who triggered the build
+                    def cause = currentBuild.getBuildCauses()[0].shortDescription
+                    
+                    mail to: 'kathuriagautam2411@gmail.com',
+                         subject: "Approval Required: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                         body: """
+                            Build Triggered Name: ${cause}
+                            Project: ${env.JOB_NAME}
+                            Build Number: ${env.BUILD_NUMBER}
+                            
+                            Please approve the build here: ${env.BUILD_URL}
+                         """
+                }
+            }
+        }
+
+        stage('Wait for Admin Approval') {
+            steps {
+                // 'submitter' restricts approval to specific Jenkins user IDs (comma separated)
+                // Replace 'admin' with your actual Jenkins administrator username
+                input message: 'Proceed with Build?', 
+                      ok: 'Approve', 
+                      submitter: 'admin' 
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Admin approved. Starting build...'
+                sh 'echo "Building application..."'
+            }
+        }
+    }
+}
+
+
+
+
+================================ jenkins ecr push ==================================
+pipeline {
+  agent { label 'worker' }
+
+  environment {
+    AWS_ACCOUNT_ID = '460068713582'
+    AWS_REGION = 'us-east-1'
+    APP_NAME = 'admin'
+    IMAGE_TAG = "${APP_NAME}-${BUILD_NUMBER}"
+    ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/production/${APP_NAME}"
+    FULL_IMAGE_TAG = "${ECR_REPO}:${IMAGE_TAG}"
+    GIT_CRED_ID = 'backend'
+    GIT_URL = 'git@github.com:Cert-Digital/crd-token-backend.git'
+    BRANCH = 'main'
+    K8S_NAMESPACE = 'production'
+    DEPLOYMENT_NAME = 'admin'
+    CONTAINER_NAME = 'admin'
+    ENV_DIR = "/opt/docker/jenkins-server/.files/backend"
+    DOCKER_FILENAME = "Dockerfile.admin"
+  }
+
+  stages {
+    stage('Clean Workspace') {
+      steps {
+        cleanWs()
+      }
+    }
+
+    stage('Clone Repository') {
+      steps {
+        git branch: "${BRANCH}", url: "${GIT_URL}", credentialsId: "${GIT_CRED_ID}"
+        //sh "git checkout be043dc18dd9af22dbb6d62fa2408558f58c783c"
+        }
+    }
+
+    stage('Add Environment Files') {
+      steps {
+          sh "sudo cp ${ENV_DIR}/.env .env"
+          sh "sudo cp ${ENV_DIR}/${DOCKER_FILENAME} ."
+        }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}"
+          sh "docker build -f ${DOCKER_FILENAME} -t ${FULL_IMAGE_TAG} . --no-cache"
+          }
+      }
+    }
+
+    stage('Push to ECR') {
+      steps {
+        sh "docker push ${FULL_IMAGE_TAG}"
+        sh "docker system prune --volumes -af"
+      }
+    }
+
+    stage('Deploy to EKS') {
+      steps {
+        script {
+          try {
+            sh "kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${FULL_IMAGE_TAG} -n ${K8S_NAMESPACE} "
+            sh "kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${K8S_NAMESPACE} --timeout=120s"
+            echo "✅ Rollout successful."
+          } catch (e) {
+            echo "❌ Rollout failed. Triggering rollback..."
+            sh "kubectl rollout undo deployment/${DEPLOYMENT_NAME} -n ${K8S_NAMESPACE}"
+            error("Deployment failed and was rolled back.")
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
+}
+
+
+
+
+
+
+
+

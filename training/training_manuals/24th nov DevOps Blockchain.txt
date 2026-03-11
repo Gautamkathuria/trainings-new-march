@@ -1,0 +1,11 @@
+26th Nov
+ 
+DevOps_Blockchain(Gautam):9 hours
+ 
+1. Worked on package management in linux.
+2. Worked on sudo permissions.
+3. Worked on environment variables.
+4. Explore the flutterbye server.
+5. Worked on docker compose file.
+6. Deploy a MongoDB container using docker.
+7. Create a user in MongoDB to access a particular database.

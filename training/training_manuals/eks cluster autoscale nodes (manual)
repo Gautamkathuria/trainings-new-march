@@ -1,0 +1,141 @@
+# create cluster in AWS eks:-
+eks -> name -> create IAM role -> create node role -> create
+
+# now create node group 
+cluster_id -> compute -> node group -> desired minimum -> create 
+
+# create a iam role 
+Iam -> user -> name -> give admin access -> connect it to node
+
+# now create OIDC 
+IAM -> provider -> create OIDC provider -> select cluster -> copy OIDC -> paste in URL -> add client id -> create
+
+# now attach policy to the role
+IAM -> role -> select role (eksautoclusterrole) -> attach policy -> search for policy -> attach policy
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "eks.amazonaws.com"
+            },
+            "Action": [
+                "sts:AssumeRole",
+                "sts:TagSession"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::831926612453:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/B0D3D72559E4E598F90B2B06C9AD2034"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.us-east-1.amazonaws.com/id/B0D3D72559E4E598F90B2B06C9AD2034:sub": "system:serviceaccount:kube-system:aws-node"
+                }
+            }
+        }
+    ]
+}
+
+# now create a config map for cluster autoscaler
+kubectl edit -n kube-system configmap/aws-auth
+mapRoles: |
+  - rolearn: arn:aws:iam::831926612453:role/eksautoclusterrole
+    username: system:node:{{EC2PrivateDNSName}}
+    groups:
+      - system:bootstrappers
+      - system:nodes
+
+# or aws configure eks-admin-role
+
+# authenticate to cluster
+aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+
+# setup vpc cni 
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-node
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::831926612453:role/MyEKSNodeRole
+EOF
+
+# Restart networking pods
+kubectl rollout restart daemonset aws-node -n kube-system
+
+# deploy cluster autoscaler
+curl -O https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml
+kubectl apply -f cluster-autoscaler-autodiscover.yaml
+kubectl -n kube-system edit deployment.apps/cluster-autoscaler
+# optional
+# add these lines under container args
+        - --nodes=1:10:my-eks-node-group-name
+        - --balance-similar-node-groups
+        - --skip-nodes-with-local-storage=false
+        - --skip-nodes-with-system-pods=false
+
+# add these lines under container env
+        - name: AWS_REGION
+            value: us-east-1
+        - name: CLUSTER_NAME
+            value: my-eks-cluster
+# add these lines under container resources
+        resources:
+            limits: 
+                cpu: 100m
+                memory: 300Mi
+            requests:
+                cpu: 100m
+                memory: 300Mi       
+
+# testing the full setup
+kubectl get nodes
+
+# check autoscaler logs
+kubectl logs -f deployment/cluster-autoscaler -n kube-system
+
+# Trigger a scale-up test
+kubectl create deployment auto-test --image=nginx
+kubectl scale deployment auto-test --replicas=50
+
+#  Watch new nodes appear in AWS console
+kubectl get nodes -w 
+
+======================set up network load balancer for eks==========================
+# create a load balancer
+eks -> name -> networking -> create load balancer -> select network load balancer -> create
+# create target group
+eks -> name -> networking -> create target group -> select target type as ip -> create
+# now attach target group to load balancer
+eks -> name -> networking -> select load balancer -> listeners -> add listener -> select target group
+# now create ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.4.7/docs/install/v2_4_7_full.yaml
+# now edit the deployment to add cluster name and aws region
+kubectl -n kube-system edit deployment.apps/aws-load-balancer-controller
+# add these lines under container args
+        - --cluster-name=my-eks-cluster
+        - --aws-region=us-east-1
+# now create a sample ingress
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/examples/ingress/ingress.yaml
+# now check the load balancer in aws console    
+kubectl get svc -n kube-system
+# now access the application using load balancer dns name
+# now clean up
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller
+/ main/docs/examples/ingress/ingress.yaml
+kubectl -n kube-system edit deployment.apps/aws-load-balancer-controller
+eks -> name -> networking -> select load balancer -> delete
+eks -> name -> networking -> delete target group
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.4.7/docs/install/v2_4_7_full.yaml
+kubectl delete deployment auto-test
+kubectl delete deployment cluster-autoscaler -n kube-system
+kubectl delete nodegroup my-eks-node-group-name --cluster my-eks-cluster
+kubectl delete clusterrolebinding cluster-autoscaler
+eks -> name -> delete cluster
+

@@ -1,0 +1,25 @@
+#======================= cz-labs server (dev) =======================
+
+# frontend pipeline hit -> cache.sh service start -> refresh
+ 
+== if someone is trying to search/hit https://dev-app.carbium.io/ with external ip then it will notload 
+   what we have to do is run ./cache.sh(home/czlabs) and see the backend_app loga parallely
+   and see the ip hit the ./cache.sh several times and see the logs if ip is diff then add it to whitelist.
+
+# there env is saved in /opt/docker/jenkins/data/files/backend  of cache.sh 
+
+# a similar script is rpc-cache.sh for rpc-cabrium
+
+# ========= learn360 mvp-dev server (44.227.157.42) =============
+env-files = /opt/docker/worker-jenkins/workspace/FRONTEND_LANDING-PANEL
+env-files = /opt/docker/apps/.env/backend/community.env
+
+# ========= learn360 lern360-mvp-prod-block server (35.93.109.76) ==============
+env-files = /home/ubuntu/learn360/hlf_backend
+
+# ========= learn360 mvp-prod server (54.201.155.202)========
+env-files (backend) = /home/ubuntu/backend/env
+env-files (frontend) = /opt/docker/jenkins/.files  (ignore backend here)
+
+
+

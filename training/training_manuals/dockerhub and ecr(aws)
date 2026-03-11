@@ -1,0 +1,67 @@
+# push image to dockerhub
+# firstly create dockerfile
+FROM python:3.9-alpine
+WORKDIR /app
+CMD ["python", "test.py"]
+
+# now docker login 
+docker login -u username(gautamkathuria)
+password- oodles123
+
+# now build an image
+docker build -t testing/my-web-app .
+
+# now tag an image
+docker tag testing gautamkathuria/my-web-app:latest
+
+# now create a public repository n docker hub dashboard with same name as my-web-app
+
+# now push the image to docker hub
+docker push gautamkathuria/my-web-app:latest
+
+# now pull the image
+docker pull gautamkathuria/my-web-app:latest
+
+=========================================================================================
+
+# Firstly install the aws cli and docker in your local terminal:
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+docker --version
+
+# Now go to aws -> ecr -> create repository
+general setting (namespace/my-web-app)
+mutable/immutable
+key
+->create repository
+
+# now select repository -> view push commands
+
+# now iam -> users -> security -> create access key ->
+
+# now go to terminal to set up aws 
+aws configure
+enter access key, security key, zone, default
+
+# now copy the command from ecr and paste it to the terminal
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 831926612453.dkr.ecr.ap-south-1.amazonaws.com
+
+# now create a dockerfile for testing
+FROM python:3.9-alpine
+WORKDIR /app
+CMD ["python", "test.py"]
+
+# now build image
+docker build -t testing/my-web-app .
+
+# now give tag to image
+docker tag testing/my-web-app:latest 831926612453.dkr.ecr.ap-south-1.amazonaws.com/testing/my-web-app:latest
+
+# now push to ECR
+docker push 831926612453.dkr.ecr.ap-south-1.amazonaws.com/testing/my-web-app:latest
+
+# now pull from ecr
+docker pull 831926612453.dkr.ecr.ap-south-1.amazonaws.com/testing/my-web-app:latest
+docker pull <aws_account_id>.dkr.ecr.<your-region>.amazonaws.com/<your-repo-name>:latest

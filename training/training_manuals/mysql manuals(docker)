@@ -1,0 +1,185 @@
+#mysql speific docker commands
+docker compose exec mysql_db bash
+docker compose logs -f mysql_db
+docker compose exec mysql_db mysql -u root -p
+
+
+
+# when this type of error occur do as follows:-
+#during backup or restore if you get error like this:-
+sudo docker compose exec mysql_db mysql -u root -p newschool < ~/Desktop/project/db_backup/schoolbackup.sql
+the input device is not a TTY
+sudo docker compose exec -T mysql_db mysql -u root -p newschool < ~/Desktop/project/db_backup/schoolbackup.sql
+# The -T flag disables pseudo-TTY allocation, which resolves the error.
+
+
+
+
+
+# To set up a MySQL database using Docker, you can use the following steps:
+# Create a docker-compose.yml file with the following content
+
+version: '3.8'
+services:
+  mysql_db:
+    image: mysql:latest
+    restart: always
+    env_file:
+      - ./.env/mysql.env
+    ports:
+      - "3306:3306" 
+    volumes:
+      - sql_data:/var/lib/mysql 
+      - ./db_backup:/tmp/db_backup
+    networks:
+      - db_net
+networks:
+  db_net:
+    driver: bridge
+volumes:
+  sql_data:
+# Save the above content in a file named docker-compose.yml
+# Then create a .env/mysql.env file to store mysql environment variables
+MYSQL_ROOT_PASSWORD: my-pw
+MYSQL_DATABASE: mysqldb
+
+# Finally run the docker compose up command to start mysql container
+docker-compose up -d
+# To access mysql container run the following command
+docker exec -it <container_name> mysql -u user_name -p
+#replace <container_name> with mysql_db and user_name with root
+sudo docker compose exec mysql_db mysql -u root -p
+# Replace my-pw and mysqldb with your desired root password and database name respectively.
+# Then run the following command to start the MySQL container
+docker-compose up -d  
+# To stop the MySQL container, run the following command
+docker-compose down
+# To access the MySQL container, run the following command
+docker exec -it mysql_db mysql -u root -p
+#replace mysql_db with your container name if different
+.
+
+# You can then interact with the MySQL database as needed.
+# Example commands to interact with MySQL database
+# Show databases
+SHOW DATABASES;
+# Use a specific database
+USE mysqldb;
+# Show tables in the database
+SHOW TABLES;
+# Create a new table
+CREATE TABLE example_table (id INT PRIMARY KEY, name VARCHAR(50));
+# Insert data into the table
+INSERT INTO example_table (id, name) VALUES (1, 'Sample Name');
+# Query data from the table
+SELECT * FROM example_table;
+# Note: Make sure to replace the placeholder values with your actual desired values.
+# delete the table
+DROP TABLE example_table;
+
+# To create user in mysql database
+CREATE USER 'newuser'@'%' IDENTIFIED BY 'user_password';
+GRANT ALL PRIVILEGES ON *.* TO 'newuser'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+# Replace 'newuser' and 'user_password' with your desired username and password.
+CREATE USER 'gautam'@'%' IDENTIFIED BY 'mypassword';
+GRANT SELECT, INSERT, UPDATE, DELETE ON mysqldb.* TO 'gautam'@'%';
+  FLUSH PRIVILEGES;
+# This will create a user named 'gautam' with password 'mypassword' and grant specific privileges on the 'mysqldb' database.
+
+# To show all users in mysql database
+SELECT user, host FROM mysql.user;
+# To show grant privileges of a user in mysql database
+SHOW GRANTS FOR 'newuser'@'%';
+# To delete a user in mysql database
+DROP USER 'newuser'@'%';
+
+# login with new user
+sudo docker compose exec mysql_db mysql -u gautam -p mysqldb
+# Replace 'gautam' with the username and 'mysqldb'
+
+# To change password of a user in mysql database
+ALTER USER 'newuser'@'%' IDENTIFIED BY 'new_password';
+# Replace 'new_password' with the desired new password.
+
+
+
+
+
+
+
+
+#backup from inside the mysql container
+mysqldump -u username   -p  db-name > /path/to-dump-21-JUN-24.sql
+#restore from inside the mysql container
+mysql -u username -p db-name < /path/to-dump-21-JUN-24.sql
+# to restore the backup from inside the mysql
+SOURCE /tmp/db_backup/schoolbackup.sql 
+
+#to bacup all databases using docker compose
+mysqldump -u root -p --all-databases > all_databases_backup.sql
+# To back up a MySQL database using Docker, you can use the following command:
+sudo docker compose exec mysql_db mysqldump -u root -p dumpdata > ~/Desktop/project/db_backup/back.sql
+
+
+# This command will create a backup of all databases in a file named all_databases_backup.sql on your host machine.
+# To restore a MySQL database from a backup file using Docker, you can use the following command:
+cat all_databases_backup.sql | docker exec -i mysql_db sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD"'
+# This command will restore the databases from the all_databases_backup.sql file into the MySQL container.
+# Make sure to replace mysql_db with your actual container name if it's different.
+
+
+cat back.sql | sed -e 's/SET @@GLOBAL.GTID_PURGED=.*//g' | sudo docker compose exec -T mysql_db mysql -u root --password=my-pw restore^C
+# This command will restore the databases from the back.sql file into the MySQL container.
+
+#to copy the sql file from host to container
+docker cp /path/on/host/file.sql mysql_db:/path/in/container/file.sql
+sudo docker compose cp ~/Desktop/project/back.sql mysql_db:/tmp/
+
+#to copy the sql file from container to host
+docker cp mysql_db:/path/in/container/file.sql /path/on/host/file.sql
+sudo docker compose cp mysql_db:/var/lib/mysql/ ~/Desktop/project/db_backup/
+
+# now give path of container file while restoring
+sudo docker compose exec -T mysql_db mysql -u root --password=my-pw < /tmp/back.sql
+
+# to restore the backup from inside the mysql
+SOURCE /tmp/db_backup/schoolbackup.sql 
+SOURCE /tmp/db_backup/mysqldb
+
+# to find absolute path of a file
+readlink -f schoolbackup.sql 
+
+# to login mysql thrugh gui tools like phpmyadmin
+ phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    env_file:
+      - ./.env/phpmyadmin.env
+    ports:
+      - "8082:80"
+    networks:
+      - db_net
+    depends_on:
+      - mysql_db
+
+# .env/phpmyadmin.env file content
+PMA_HOST=mysqldb
+PMA_USER=gautam
+PMA_PASSWORD=password
+
+# mysql.env
+MYSQL_ROOT_PASSWORD=my-pw
+MYSQL_DATABASE=mysqldb
+MYSQL_USER=gautam
+MYSQL_PASSWORD=password
+# Now you can access phpMyAdmin at http://localhost:8082
+
+# now enter in mysql db using root and create usr for mysqldb
+CREATE USER 'gautam'@'%' IDENTIFIED BY 'password';
+GRANT select PRIVILEGES ON mysqldb.* TO 'gautam'@'%';
+FLUSH PRIVILEGES;
+
+# Now you can login phpmyadmin using gautam and password  by restarting the phpmyadmin container
+docker compose restart phpmyadmin

@@ -1,0 +1,198 @@
+# what is modules?
+A module is a reusable block of Terraform code.
+modules/
+   └── ec2/
+        ├── main.tf
+        ├── variables.tf
+        ├── outputs.tf
+
+# what is variables?
+Variables are like placeholders.
+
+Instead of hardcoding values (like instance type, region, name), we use variables so we can reuse the code.
+
+instance_type = var.instance_type
+
+# What is provider?
+A provider is a plugin that allows Terraform to talk to a specific platform.
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+# What is resource?
+A resource is the actual infrastructure you want to create.
+
+resource "PROVIDER_RESOURCE_TYPE" "NAME" {
+  arguments
+}
+
+resource "TYPE" "NAME"
+
+
+
+# what is variables.tf?
+variables.tf is the file where you define input variables for your Terraform project.
+It does NOT store values (usually).
+It defines the structure of the inputs.
+variable "region" {
+  description = "AWS region"
+  type        = string
+}
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+# what is .tfvars file?
+.tfvars file is where you assign actual values to variables.
+
+region        = "ap-south-1"
+instance_type = "t2.medium"
+environment   = "dev"
+
+
+# Terraform File Types
+main.tf = Main configuration files.
+
+variables.tf = Defines input variables.
+
+terraform.tfvars = Assigns values to variables.
+
+outputs.tf = Displays output values.
+
+terraform.tfstate = Stores infrastructure state (VERY IMPORTANT).
+
+# State File (terraform.tfstate)
+Stores: What Terraform created
+Resource IDs
+Metadata
+Without state file → Terraform is blind.
+
+# Terraform Commands
+terraform init = Initialize project.
+terraform plan = Shows what will change.
+terraform apply = Creates or updates infra.
+terraform destroy = Deletes infra.
+terraform validate = Checks syntax.
+terraform fmt = Formats code.
+terraform state list = to list resources in state file.
+terraform state show RESOURCE_NAME = to show details of a resource in state file.
+
+
+# Data Sources
+Fetch existing resources.
+
+data "aws_ami" "latest" {}
+
+# Backend: Backend stores state.
+
+Types: gautam-terraform-demo-bucket-12345
+Local
+S3
+Azure Storage
+Terraform Cloud
+
+Production → Always remote backend.
+
+# State Locking
+Prevents two people from running apply at same time.
+
+# Count
+Creates multiple resources.
+
+count = 3
+
+
+# ================================= connect terraform with OIDC github (without aws credentials) ================================= provider "aws" { region = "ap-south-1" # OIDC configuration assume_role { role_arn = "arn:aws:iam::123456789012:role/GitHubActionsRole" session_name = "GitHubActionsSession" } }
+
+
+1. Create a repo in github name terraform-oidc and clone it to server.
+
+2. creat OIDC provider in AWS IAM.
+Iam -> Identity providers -> Add provider -> OIDC -> provider URL: https://token.actions.githubusercontent.com audience: sts.amazonaws.com
+
+3. create role with trust relationship to OIDC providers
+Iam -> Roles -> Create role -> Web Identity -> select OIDC provider created in step 1 -> select "sts.amazonaws.com" as audience -> organization (github username) -> Next -> attach policies (like administratoraccess) -> Next -> Role name: OIDC-terraform -> Create role
+role -> edit trust relationship
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {
+				"Federated": "arn:aws:iam::831926612453:oidc-provider/token.actions.githubusercontent.com"
+			},
+			"Action": "sts:AssumeRoleWithWebIdentity",
+			"Condition": {
+				"StringEquals": {
+					"token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+					"token.actions.githubusercontent.com:sub": "repo:Gautamkathuria/terraform-oidc:ref:refs/heads/main"
+				}
+			}
+		}
+	]
+}
+
+4. now copy the configuration files to clone repo using cp and push to github by removing
+.terraform and terrafrom.statefiles.
+
+5. now create a github workflow in .github/workflows/terraform.yml
+
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      # Configure AWS credentials using OIDC
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::831926612453:role/oidc-terraform 
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        working-directory: ./awss3
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./awss3
+        run: terraform plan -var-file="file.auto.tfvars"
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ./awss3
+        run: terraform apply -auto-approve -var-file="file.auto.tfvars"
+
+6. now run the github actions, it will create the infrastructure in AWS without using any credentials.
+
+
+

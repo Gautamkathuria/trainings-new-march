@@ -1,0 +1,28 @@
+# go to ec2 -> launch instance -> choose rdp(sg) -> windows -> launc instance
+
+# now click on connect -> download remote desktop file 
+
+# now download the remminte desktop file and open it
+sudo apt install remmina -y
+
+cd ~/Downloads
+remmina ./your-ec2-instance-ip.rdp
+
+# now generate password from ec2 console and login to the instance
+instance -> connect -> rdp client -> get password -> upload your key pair file -> decrypt password
+
+# copy the password and paste it in remmina login window along with username "Administrator"
+
+# now you are logged in to your windows ec2 instance
+
+=======================set up iis server=======================
+
+# now go to server manager -> manage -> add roles and features -> next -> next -> next -> select "web server (iis)" -> next -> next -> install
+# now wait for the installation to complete and then click on "close"
+# now go to start -> type iis -> open "internet information services (iis) manager"
+
+# now create a sample html file to test the iis server and save it in "C:\inetpub\wwwroot\index.html" folder
+
+# now open iis manager -> select your server name -> restart the iis server
+
+# now open your browser and type http://your-ec2-instance-ip to see the html page

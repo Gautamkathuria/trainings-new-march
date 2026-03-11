@@ -1,0 +1,129 @@
+
+# Jl
+enkinsfile for ssh based git cloning and docker build and running
+pipeline{
+    agent {label 'linux'}
+
+    stages {
+        stage('clone repository') {
+            steps {
+                echo 'Cloning repository...'
+                git credentialsId: 'github-jenkins',
+                url: "git@github.com:gautamkathuria-sudo/mypipeline.git"    ,
+                branch: 'main'
+            }
+        }
+        stage('build docker image') {
+            steps {
+                echo 'Building docker image...'
+                sh 'docker build -t myapp:latest .'
+            }
+        }
+        stage('build docker container') {
+            steps {
+                echo 'Building docker container...'
+                sh 'docker run -d -p 8081:80 --name myapp_container myapp:latest'
+            }
+        }
+    }
+}
+"""
+# build with parameters
+ parameters {
+        choice(
+            name: 'branch',
+            choices: ['main', 'development'],
+            description: 'Select the deployment environment'
+        )
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                echo "Selected branch: ${params.branch}"
+                echo 'Cloning repository...'
+
+                git(
+                    branch: "${params.branch}",
+                    credentialsId: 'github-jenkins',
+                    sh 'docker rm -f buildparam_container || true',
+                    url: "git@github.com:gautamkathuria-sudo/mypipeline.git"
+                )
+            }
+        }"""
+
+# build with string parameter for branch name
+        pipeline {
+    agent { label 'linux' }
+
+    parameters {
+    string(name: 'branch', defaultValue: 'main', description: 'Enter the branch name')  
+ 
+}
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                echo "Selected branch: ${params.branch}"
+                echo 'Cloning repository...'
+
+                git(
+                    branch: "${params.branch}",
+                    credentialsId: 'github-jenkins',
+                    url: "git@github.com:gautamkathuria-sudo/mypipeline.git"
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t buildparam:latest .'
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                echo 'Running Docker container...'
+                sh 'docker rm -f buildparam_container || true'
+                sh 'docker run -d -p 8083:80 --name buildparam_container buildparam:latest'
+            }
+        }
+    }
+}
+
+
+# pipline to show the logs of selected docker container
+pipeline {
+    agent { label 'linux' }
+    parameters {
+        choice(
+            name: 'container_name',
+            choices: ['myapp_container', 'buildparam_container'],
+            description: 'Select the Docker container to view logs'
+        )
+    stages {
+        stage('View Docker Logs') {
+            steps {
+                echo "Fetching logs for container: ${params.container_name}"
+                sh "docker logs ${params.container_name}"
+            }
+        }
+    }
+
+
+}}
+
+# create a pipeline that clean space remove unused docker images and containers
+pipeline {
+    agent { label 'linux' }
+    stages {
+        stage('Clean Docker Space') {
+            steps {
+                echo 'Cleaning up unused Docker images and containers...'
+                sh 'docker system prune -f'
+            }
+        }
+    }

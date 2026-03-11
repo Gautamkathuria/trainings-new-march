@@ -1,0 +1,65 @@
+# to create a prometheus and node-exporter container:
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml 
+    networks:
+      - monitoring_net
+
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - '/:/host:ro'
+    networks:
+      - monitoring_net
+
+networks:
+  monitoring_net:
+    driver: bridge
+
+# create prometheus.yml file to configure prometheus:
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+# create contaier:
+docker compose up -d
+# access prometheus using http://localhost:9090
+# now you can see node-exporter metrics using http://localhost:9100/metrics
+# to see node-exporter metrics in prometheus go to http://localhost:9090/
+# and enter node-exporter:9100/metrics in expression box and click on execute
+# now you can monitor your host machine using prometheus and node-exporter
+
+# go to status -> targets to see if prometheus is able to scrape metrics from node-exporter
+
+# now run some queries to see node metrics:
+# CPU usage:
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)
+# Memory usage:
+(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100
+# Disk usage:
+(node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes
+# Network I/O:
+rate(node_network_receive_bytes_total[1m]) + rate(node_network_transmit_bytes_total[1m])
+# up
+up{job="node-exporter"}

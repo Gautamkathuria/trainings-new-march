@@ -1,0 +1,127 @@
+# to map domain with ip address create record in your domain registrar's dns settings
+# create an a record with your domain pointing to your server ip address
+# example:
+# type: A
+# name: gautam.codebuild.live
+# value: <your_server_ip_address> 
+# now create a docker compose file with nginx and certbot to enable https using let's encrypt
+# chrome://net-internals/?#dns
+
+# create a docker compose file(this is final) with nginx and certbot to enable https using let's encrypt)
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./html:/usr/share/nginx/html
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
+    restart: always
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; certbot renew; done'"
+
+# now create data/nginx/default.conf(final)
+server {
+    listen 80;
+    server_name gautam.codebuild.live;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name gautam.codebuild.live;
+
+    ssl_certificate /etc/letsencrypt/live/gautam.codebuild.live/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gautam.codebuild.live/privkey.pem;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+
+# befor run this we have to do a one time certbot manual run to get the certificates
+# run the following command to get the certificates
+
+# first remove the entrypoint from the certbot compose file
+# then run the compose file
+docker compose up -d
+
+# now create default.conf file in data/nginx folder
+server {
+    listen 80;
+    server_name gautam.codebuild.live;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+
+# now run docker compose up -d
+docker compose up -d
+
+# now run the certbot command to get the certificates
+docker compose run --rm certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  --email your@email.com \           //email should be valid.
+  --agree-tos \
+  --no-eff-email \
+  -d gautam.codebuild.live
+
+# now after getting the certificates update the default.conf file to enable https the final default.conf file is shown above
+
+# now reload nginx to apply the changes
+docker compose exec nginx nginx -s reload
+# now enable entrypoint in certbot compose file again
+# now run the compose file again
+docker compose up -d
+
+# now check https://gautam.codebuild.live
+curl -I https://gautam.codebuild.live
+
+# to see certificates details
+docker compose run --rm certbot certificates
+--rm = remove the container after the command is executed
+
+# now to test the auto renewal of certificates run the following command
+--dry-run = to test the renewal process without actually renewing the certificates
+docker compose run --rm certbot renew --dry-run
+
+# to revoke the certificate run the following command
+docker compose run --rm certbot certbot revoke \
+  --cert-path /etc/letsencrypt/live/gautam.codebuild.live/fullchain.pem \
+  --reason keycompromise \
+  --email 
+
+  sudo certbot revoke --cert-path /etc/letsencrypt/live/example.com/cert.pem
+
+
+
+
+

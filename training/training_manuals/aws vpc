@@ -1,0 +1,532 @@
+# what is vpc?
+A virtual private cloud (VPC) is a virtual network dedicated to your AWS account. It is logically isolated from other virtual networks in the AWS Cloud. You can specify an IP address range for the VPC, add subnets, add gateways, and associate security groups.
+
+# what is subnet?
+A subnet is a range of IP addresses in your VPC. You launch AWS resources, such as Amazon EC2 instances, into your subnets. You can connect a subnet to the internet, other VPCs, and your own data centers, and route traffic to and from your subnets using route tables.
+
+# what is route tables?
+A route table contains a set of rules, called routes, that are used to determine where network traffic from your VPC is directed. You can explicitly associate a subnet with a particular route table. Otherwise, the subnet is implicitly associated with the main route table.
+
+# What is internet gateway?
+ instances can communicate with the internet through the internet gateway. An internet gateway enables your instances to connect to the internet through the Amazon EC2 network edge.
+
+ # What is NAT gateway?
+ To allow an instance in your VPC to initiate outbound connections to the internet but prevent unsolicited inbound connections from the internet, you can use a network address translation (NAT) device. NAT maps multiple private IPv4 addresses to a single public IPv4 address. You can configure the NAT device with an Elastic IP address and connect it to the internet through an internet gateway. This makes it possible for an instance in a private subnet to connect to the internet through the NAT device, routing traffic from the instance to the internet gateway and any responses to the instance.
+
+
+ # ================================== create vpc in aws ===========================
+
+ # aws -> vpc -> select vpc only -> name
+
+# now give ip address
+ vpc - 10.2.0.0/16
+
+# now create subnet 
+subnet -> name -> select ip -> create
+
+public subnet1 - 10.2.0.0/20 
+public subnet2 - 10.2.16.0/20
+
+private subnet1 - 10.2.128.0/20
+private subnet2 - 10.2.144.0/20
+
+# edit public sunbet setting action-> edit -> assign public ip
+
+# now create internet gateway
+igw -> assign vpc -> create
+
+# now create route tables
+route table -> assign vpc -> create (public,private)
+Edit public route table destnation(0.0.0.0) and source igw 
+
+
+# =================================set up bastion host ==================
+
+1. create a sg and allow inbound rules to 22 and name as bastion-sg.
+2. now create another sg allow inbound rules 22 and source is (bastion-sg) and named as private-sg.
+3. now launch instances one in public subnet and one in privet subnet with attach respective sg.
+4. now connect public instance.
+# ssh -i abc.pem ubuntu@pub-ip
+5. now copy abc.pem inside the instance from local.
+sftp -i abc.pem ubuntu@pub-ip 
+put /home/gautam/Downloads/abc.pem /home/ubuntu
+6. now connect private instance from public instance
+ssh -i abc.pem ubunut@pvt-ip of pvt instance.
+
+
+# ===================================VPC peering============================
+
+# what is vpc peering?
+VPC Peering is a networking connection between two Virtual Private Clouds (VPCs) that allows them to communicate with each other privately using AWS’s internal network.
+
+It’s like creating a private tunnel between two separate networks so that resources in both networks can talk to each other as if they are in the same network.
+
+Uses private IP addresses
+
+** example **
+Imagine:
+VPC-A → has a web server
+VPC-B → has a database
+
+If you create VPC Peering between them:
+The web server in VPC-A can directly access the database in VPC-B using private IP addresses
+No internet gateway is needed
+Traffic stays inside AWS network (secure and fast)
+
+
+# types of vpc peering:-
+1. Intra-Region VPC Peering (Same Region)
+2. Inter-Region VPC Peering (Different-Region)
+3. Cross-Account VPC Peering
+
+# Why Do We Use VPC Peering?
+Application is in one VPC
+Database is in another VPC
+Dev and Prod are separated
+Shared services VPC exists
+Monitoring VPC needs access to production
+
+# How VPC Peering Works
+1. Create Peering Request (Requester VPC)
+2. Accept Request (Accepter VPC)
+3. Update Route Tables in BOTH VPCs
+4. Update Security Groups and NACLs
+5. Communication starts via private IP
+
+# Important Rules & Limitations
+❌ No Overlapping CIDR
+If VPC-A = 10.0.0.0/16
+VPC-B = 10.0.0.0/16
+Peering will fail.
+
+Reason: AWS cannot route identical IP ranges.
+
+❌ No Transitive Routing
+If:
+A ↔ B
+B ↔ C
+
+A cannot talk to C automatically.
+VPC Peering is NOT transitive.
+For that → Use Transit Gateway.
+
+# Route Table Requirements
+You must add:
+In VPC-A route table:
+Destination: VPC-B CIDR
+Target: Peering Connection ID
+
+In VPC-B route table:
+Destination: VPC-A CIDR
+Target: Peering Connection ID
+
+Without both routes → No communication.
+
+
+# ===================vpc peering in same region ===================================
+
+1. create two vpcs :
+vpc A :-
+10.0.0.0/16
+
+subnet A :-
+10.0.0.0/20
+
+igw :-
+use vpc A 
+
+route table :-
+use vpc A 
+destination 0.0.0.0, sourc-igw
+subnet A associtate
+
+2. Now create vpc 2:
+vpc B :-
+192.168.0.0/16
+
+subnet B :-
+192.168.1.0/24
+
+igw :-
+use vpc B 
+
+route table :-
+use vpc B 
+destination 0.0.0.0, sourc-igw
+subnet B associtate
+
+
+# now create security-groups :-
+1. create vpcA-sg
+allows 22 to 0.0.0.0
+allows 80 to 192.168.0.0/16
+
+
+2. Create vpcB-sg
+allows 22 to 0.0.0.0
+allows 80 to 10.0.0.0/16
+
+# Now launch 2 ec2 instances:
+1. Launch EC2-A:-
+Name: EC2-A
+AMI: ubuntu
+Instance type: t2.micro
+VPC: VPC-A
+Subnet: VPC-A-Subnet
+Auto-assign Public IP: Enable
+Security Group: vpcA-sg
+Key Pair: Select/Create
+
+2. Launch EC2-B
+Name: EC2-B
+VPC: VPC-B
+Subnet: VPC-B-Subnet
+Public IP: Enable
+Security Group: vpcB-sg
+
+# now ssh into EC2-B:
+ssh -i key.pem ec2-user@<Public-IP-EC2-B>
+
+# install apache:-
+sudo apt install apache2 -y
+sudo systemctl start apache2
+echo "Hello from VPC-B" | sudo tee /var/www/html/index.html
+
+
+# now create vpc peering
+Go to VPC → Peering Connections → Create
+
+Requester: VPC-A
+Accepter: VPC-B
+Region: Same
+
+Create.
+
+Accept the request.
+
+Status → Active
+
+# now update the route tables:-
+In VPC-A Route Table
+Add:
+Destination - 	192.168.0.0/16
+Target -      	Peering-ID
+
+In VPC-B Route Table
+Add:
+Destination - 10.0.0.0/16	
+Target - 	  Peering-ID
+
+
+# now test
+SSH into EC2-A
+ssh -i key.pem ec2-user@<Public-IP-EC2-A>
+curl http://pvt-ip of EC2-B
+
+# ======================Access RDS using vpc peering (same-region)===================
+
+1. Create VPC-1 (EC2 VPC)
+Go to: VPC → Create VPC
+Settings:
+Name: VPC-EC2
+IPv4 CIDR: 10.0.0.0/16
+Tenancy: Default
+Click Create
+
+2. Create Subnet for EC2
+Go to: Subnets → Create Subnet
+VPC: VPC-EC2
+Name: EC2-Subnet
+AZ: ap-south-1a
+CIDR: 10.0.1.0/24
+Create.
+
+3. Create Internet Gateway (for EC2 SSH)
+Go to: Internet Gateways → Create
+Name: EC2-IGW
+Attach to: VPC-EC2
+
+4. Create Route Table for EC2 
+Go to: Route Tables → Create
+Name: EC2-RT
+VPC: VPC-EC2
+Edit Routes:
+Add:
+Destination	- 0.0.0.0/0 
+Target - 	Internet Gateway
+Associate this route table with EC2-Subnet.
+
+5. Create EC2 Security Group
+Go to: EC2 → Security Groups → Create
+Name: EC2-SG
+VPC: VPC-EC2
+Inbound:
+SSH (22) → Your IP
+MySQL (3306) → Allow All (for now testing)
+
+6. Launch EC2 Instance
+Go to: EC2 → Launch Instance
+AMI: Ubuntu
+Instance type: t2.micro
+VPC: VPC-EC2
+Subnet: EC2-Subnet
+Auto assign Public IP: Enable
+Security Group: EC2-SG
+Key Pair: Select/Create
+
+7. Create VPC-2 (RDS VPC)
+Go to: VPC → Create VPC
+Name: VPC-RDS
+CIDR: 10.1.0.0/16
+Create.
+
+8. Create Private Subnets for RDS
+Create 2 subnets (RDS needs 2 AZs):
+
+Subnet 1:
+Name: RDS-Subnet-1
+CIDR: 10.1.1.0/24
+AZ: ap-south-1a
+
+Subnet 2:
+Name: RDS-Subnet-2
+CIDR: 10.1.2.0/24
+AZ: ap-south-1b
+
+9. Create RDS Subnet Group
+Go to: RDS → Subnet Groups → Create
+Name: rds-subnet-group
+VPC: VPC-RDS
+Add both subnets
+Create.
+
+10. Create RDS Security Group
+Go to: EC2 → Security Groups → Create
+Name: RDS-SG
+VPC: VPC-RDS
+Inbound:
+MySQL (3306)
+Source: 10.0.0.0/16 (EC2 VPC CIDR)
+Outbound:
+Allow All
+
+11. Create RDS Database
+Go to: RDS → Create Database
+Engine: MySQL
+Template: Free tier
+DB identifier: mydb
+Username: admin
+Password: choose
+
+Network:
+VPC: VPC-RDS
+Subnet group: rds-subnet-group
+Public Access: No
+Security Group: RDS-SG
+Create DB.
+Wait until status: Available
+
+12. Create VPC Peering
+Go to: VPC → Peering Connections → Create
+Name: EC2-RDS-Peering
+Requester VPC: VPC-EC2
+Accepter VPC: VPC-RDS
+
+13. Accept Peering
+Select peering → Actions → Accept
+Status: Active
+
+14. Update Route Tables
+EC2 Route Table
+Go to EC2-RT
+Add route:
+Destination	- 10.1.0.0/16	
+Target -     Peering (pcx-xxxx)
+
+ RDS Route Table
+Find main route table of VPC-RDS
+Edit routes:
+Add:
+Destination	- 10.0.0.0/16
+Target -	Peering (pcx-xxxx)
+
+
+15. Test Connection
+SSH into EC2:
+ssh -i key.pem ec2-user@<Public-IP>
+
+16. sudo apt install mysql-client -y
+17. mysql -h mydb.c32yqq8gsacb.ap-south-1.rds.amazonaws.com -u admin -p
+
+
+# ===============Access RDS using vpc peering (different-region)====================
+
+# IN MUMBAI 
+
+1. Create VPC-1 (EC2 VPC)
+Go to: VPC → Create VPC
+Settings:
+Name: VPC-EC2
+IPv4 CIDR: 10.0.0.0/16
+Tenancy: Default
+Click Create
+
+2. Create Subnet for EC2
+Go to: Subnets → Create Subnet
+VPC: VPC-EC2
+Name: EC2-Subnet
+AZ: ap-south-1a
+CIDR: 10.0.1.0/24
+Create.
+
+3. Create Internet Gateway (for EC2 SSH)
+Go to: Internet Gateways → Create
+Name: EC2-IGW
+Attach to: VPC-EC2
+
+4. Create Route Table for EC2 
+Go to: Route Tables → Create
+Name: EC2-RT
+VPC: VPC-EC2
+Edit Routes:
+Add:
+Destination	- 0.0.0.0/0 
+Target - 	Internet Gateway
+Associate this route table with EC2-Subnet.
+
+5. Create EC2 Security Group
+Go to: EC2 → Security Groups → Create
+Name: EC2-SG
+VPC: VPC-EC2
+Inbound:
+SSH (22) → Your IP
+MySQL (3306) → Allow All (for now testing)
+
+6. Launch EC2 Instance
+Go to: EC2 → Launch Instance
+AMI: Ubuntu
+Instance type: t2.micro
+VPC: VPC-EC2
+Subnet: EC2-Subnet
+Auto assign Public IP: Enable
+Security Group: EC2-SG
+Key Pair: Select/Create
+
+# IN north-verginia
+
+7. Create VPC-2 (RDS VPC)
+Go to: VPC → Create VPC
+Name: VPC-RDS
+CIDR: 10.1.0.0/16
+Create.
+
+8. Create Private Subnets for RDS
+Create 2 subnets (RDS needs 2 AZs):
+
+Subnet 1:
+Name: RDS-Subnet-1
+CIDR: 10.1.1.0/24
+AZ: ap-south-1a
+
+Subnet 2:
+Name: RDS-Subnet-2
+CIDR: 10.1.2.0/24
+AZ: ap-south-1b
+
+9. Create RDS Subnet Group
+Go to: RDS → Subnet Groups → Create
+Name: rds-subnet-group
+VPC: VPC-RDS
+Add both subnets
+Create.
+
+10. Create RDS Security Group
+Go to: EC2 → Security Groups → Create
+Name: RDS-SG
+VPC: VPC-RDS
+Inbound:
+MySQL (3306)
+Source: 10.0.0.0/16 (EC2 VPC CIDR)
+Outbound:
+Allow All
+
+11. Create RDS Database
+Go to: RDS → Create Database
+Engine: MySQL
+Template: Free tier
+DB identifier: mydb
+Username: admin
+Password: choose
+
+Network:
+VPC: VPC-RDS
+Subnet group: rds-subnet-group
+Public Access: No
+Security Group: RDS-SG
+Create DB.
+Wait until status: Available
+
+12. Create VPC Peering (in mumbai)
+Go to: VPC → Peering Connections → choose defferet-region -> select vpc-id -> Create
+Name: EC2-RDS-Peering
+Requester VPC: VPC-EC2
+Accepter VPC: VPC-RDS (vpc-id)
+
+13. Accept Peering(in n.virginia)
+Select peering → Actions → Accept
+Status: Active
+
+14. Update Route Tables
+EC2 Route Table
+Go to EC2-RT
+Add route:
+Destination	- 10.1.0.0/16	
+Target -     Peering (pcx-xxxx)
+
+ RDS Route Table
+Find main route table of VPC-RDS
+Edit routes:
+Add:
+Destination	- 10.0.0.0/16
+Target -	Peering (pcx-xxxx)
+
+15. now edit the peering connection
+peering connection -> edit dns -> enable
+vpc -> edit vpc settings -> dns settings -> enable hostname
+
+16. Test Connection
+SSH into EC2:
+ssh -i key.pem ec2-user@<Public-IP>
+
+16. sudo apt install mysql-client -y
+17. mysql -h <pvt-ip> -u admin -p
+(In N.virginia) go to ec2 -> network interface -> copy pvt-ip 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

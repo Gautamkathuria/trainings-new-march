@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: final-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # THIS IS THE TRIGGER:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - gautam.codebuild.live  # <--- MUST BE YOUR REAL DOMAIN
+    secretName: final-app-tls-cert
+  rules:
+  - host: gautam.codebuild.live  # <--- MUST BE YOUR REAL DOMAIN
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: final-service
+            port:
+              number: 80
+

@@ -1,0 +1,15 @@
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+      http: {}
+
+processors:
+  batch: {}
+
+exporters:
+  logging:
+    loglevel: info
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+

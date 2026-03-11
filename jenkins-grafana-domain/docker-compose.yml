@@ -1,0 +1,62 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
+    restart: always
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+      - ./logs/certbot/:/var/log/letsencrypt
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: always
+    env_file:
+      - ./.env/grafana.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: always
+
+  promtail:
+    image: grafana/promtail
+    container_name: promtail
+    volumes:
+      - ./promtail:/etc/promtail
+      - /home/ubuntu/certbot/logs:/var/log/letsencrypt:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/promtail.yaml
+    restart: always
+
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jenkins_data:/var/jenkins_home
+

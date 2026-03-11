@@ -1,0 +1,34 @@
+services:
+  mongo1:
+    image: mongo:latest
+    container_name: mongo1
+    env_file: .env
+    command: ["mongod", "--replSet", "myReplicaSet", "--bind_ip_all", "--keyFile", "/data/configdb/keyfile"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo1_data:/data/db
+      - ./mongo-keyfile:/data/configdb/keyfile
+
+  mongo2:
+    image: mongo:latest
+    container_name: mongo2
+    env_file: .env
+    command: ["mongod", "--replSet", "myReplicaSet", "--bind_ip_all", "--keyFile", "/data/configdb/keyfile"]
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./mongo2_data:/data/db
+      - ./mongo-keyfile:/data/configdb/keyfile
+
+  mongo3:
+    image: mongo:latest
+    container_name: mongo3
+    env_file: .env
+    command: ["mongod", "--replSet", "myReplicaSet", "--bind_ip_all", "--keyFile", "/data/configdb/keyfile"]
+    ports:
+      - "27019:27017"
+    volumes:
+      - ./mongo3_data:/data/db
+      - ./mongo-keyfile:/data/configdb/keyfile
+

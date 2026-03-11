@@ -1,0 +1,67 @@
+services:
+  nginx-server:
+    image: nginx:1.25-otel
+    ports: ["8088:80"]
+    volumes:
+      - ./default.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-logs:/var/log/nginx
+    depends_on: [otel-collector]
+    networks:
+      - monitoring_net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel.yaml:/etc/otel-config.yaml
+      - ./nginx-logs:/var/log/nginx
+    command: ["--config=/etc/otel-config.yaml"]
+    ports: ["4317:4317"]
+    networks:
+      - monitoring_net
+    depends_on:
+      - tempo
+      - loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports: ["9090:9090"]
+    networks:
+      - monitoring_net
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring_net
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"
+        #- "4318:4317"
+    networks:
+      - monitoring_net
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    env_file:
+      - ./.env/grafana.env
+    networks:
+      - monitoring_net
+
+networks:
+  monitoring_net:
+    driver: bridge
+

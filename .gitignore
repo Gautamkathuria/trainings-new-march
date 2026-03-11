@@ -1,0 +1,157 @@
+# MongoDB replica secrets
+mongodb-replicaset/mongo-keyfile
+
+# MongoDB data
+mongodb-replicaset/*_data/
+
+# Database runtime
+*/db/
+*_data/
+db_data/
+mysql_data/
+mongo*_data/
+
+# Monitoring data
+grafana-data/
+grafana_data/
+tempo-data/
+# Database runtime
+ecr/db/
+*/db/
+*_data/
+db_data/
+mysql_data/
+mongo*_data/
+
+# Logs / temp
+*.log
+*.pid
+# Database data
+*_data/
+db_data/
+mysql_data/
+mongo*_data/
+
+# Grafana / monitoring
+grafana_data/
+grafana-data/
+tempo-data/
+
+# Docker volumes
+*/data/
+*/_data/
+
+# Logs
+*.log
+
+# Archives
+*.zip
+jenkins_data/
+postgres_data/
+sql_data/
+openvpn_data/
+certbot/
+*.pem
+*.key
+*.cnf
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform cache
+.terraform/
+
+# Terraform lock backup
+.terraform.lock.hcl
+
+# Variable files with secrets
+*.tfvars
+*.tfvars.json
+
+# Crash logs
+crash.log
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json.vercel
+
+.vercel
+
+# =========================
+# System / OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+
+# =========================
+# Certificates / secrets
+# =========================
+*.pem
+*.key
+*.crt
+
+# =========================
+# Backups / archives
+# =========================
+*.zip
+*.tar
+*.gz
+
+# =========================
+# Database data
+# =========================
+database/*data
+database/sql_data
+database/postgres_data
+database/mongo_data
+
+# =========================
+# Jenkins runtime data
+# =========================
+jenkins/jenkins_data
+
+# =========================
+# Certbot runtime files
+# =========================
+certbot/conf/accounts
+certbot/logs
+certbot/work
+
+# =========================
+# OpenVPN runtime data
+# =========================
+openvpn/openvpn_data
+
+# =========================
+# Node / Next.js build files
+# =========================
+node_modules
+.next
+dist
+build
+
+# =========================
+# Monitoring runtime data
+# =========================
+grafana/data
+prometheus/data
+
+# =========================
+# PM2 logs
+# =========================
+.pm2
+
+

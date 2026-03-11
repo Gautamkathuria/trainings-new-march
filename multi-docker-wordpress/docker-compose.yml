@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: wp-db
+    restart: always
+    env_file: ./.env/mysql.env
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - wp-network
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    container_name: wp-app
+    restart: always
+    ports:
+      - "8081:80"
+    env_file: ./.env/wordpress.env
+    volumes:
+      - ./wp_data:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - wp-network
+
+  wordpress-dev:
+    image: wordpress:php8.2-apache
+    container_name: wp-dev
+    restart: always
+    ports:
+      - "8083:80"
+    env_file: ./.env/wordpress_dev.env
+    volumes:
+      - ./wp_dev_data:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - wp-network
+
+
+networks:
+  wp-network:

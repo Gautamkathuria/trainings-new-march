@@ -1,0 +1,25 @@
+
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: backend2
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./.env/ecs.env
+
+  frontend:
+    build: ./frontend
+    container_name: frontend2
+    ports:
+      - "3000:3000"
+    environment:
+      - ./.env/ecs.env
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+    driver: bridge

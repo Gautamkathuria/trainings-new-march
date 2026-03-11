@@ -1,0 +1,43 @@
+services:
+  nginx:
+    image: nginx
+    container_name: nginx-test
+    ports:
+      - "80:80" 
+    volumes:
+      - ./data:/etc/nginx/conf.d
+      - ./html:/usr/share/nginx/html
+      - ./logs:/var/log/nginx
+
+    networks:
+      - nginx-net
+  node:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install && npm start"
+    networks:
+      - nginx-net
+
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=/prometheus/'
+    networks:
+      - nginx-net
+  
+
+
+
+networks:
+  nginx-net:
+    driver: bridge 
+
+

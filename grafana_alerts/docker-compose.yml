@@ -1,0 +1,17 @@
+services:
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env/grafana.env
+    restart: always
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    networks:
+      - monit_net
+
+networks:
+  monit_net:
+    driver: bridge

@@ -1,0 +1,54 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  filelog:
+    include: ["/var/log/nginx/access.log"]
+    start_at: beginning
+    operators:
+      - type: regex_parser
+        regex: '^(?P<remote_addr>[^ ]*) - (?P<remote_user>[^ ]*) \[(?P<time_local>[^\]]*)\] "(?P<method>\S+)(?: +(?P<path>[^\"]*?)(?: +\S*)?)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)")?.*trace_id="(?P<trace_id>[^"]*)".*$'
+        timestamp:
+          parse_from: attributes.time_local
+          layout: '%d/%b/%Y:%H:%M:%S %z'
+
+processors:
+  batch:
+  resource:
+    attributes:
+      - key: service.name
+        value: nginx
+        action: upsert
+      - key: loki.format
+        value: logfmt
+        action: insert
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  otlp/tempo:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [filelog]
+      processors: [batch, resource]
+      exporters: [otlphttp/loki]

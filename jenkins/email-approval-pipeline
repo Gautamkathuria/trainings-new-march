@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Pull Code from GitHub') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'git-id',
+                    url: 'git@github.com:gautamkathuria-sudo/OIDC.git'
+            }
+        }
+
+        stage('Approval Request') {
+            steps {
+                script {
+                    // Identify who triggered the build
+                    def cause = currentBuild.getBuildCauses()[0].shortDescription
+                    
+                    mail to: 'kathuriagautam2411@gmail.com',
+                         subject: "Approval Required: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                         body: """
+                            Build Triggered Name: ${cause}
+                            Project: ${env.JOB_NAME}
+                            Build Number: ${env.BUILD_NUMBER}
+                            
+                            Please approve the build here: ${env.BUILD_URL}
+                         """
+                }
+            }
+        }
+
+        stage('Wait for Admin Approval') {
+            steps {
+                // 'submitter' restricts approval to specific Jenkins user IDs (comma separated)
+                // Replace 'admin' with your actual Jenkins administrator username
+                input message: 'Proceed with Build?', 
+                      ok: 'Approve', 
+                      submitter: 'admin' 
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Admin approved. Starting build...'
+                sh 'echo "Building application..."'
+            }
+        }
+    }
+}

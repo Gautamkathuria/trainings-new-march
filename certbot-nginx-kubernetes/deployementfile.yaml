@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: final-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: final-app
+  template:
+    metadata:
+      labels:
+        app: final-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest  # Using standard nginx to ensure the mount path works
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+      volumes:
+      - name: html-volume
+        configMap:
+          name: nginx-html-config
+

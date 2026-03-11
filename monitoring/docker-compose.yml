@@ -1,0 +1,72 @@
+services:
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: always
+    env_file:
+      - ./.env/grafana.env
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+        #  - ./grafana.ini:/etc/grafana/grafana.ini
+    networks:
+      - monitoring_net
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml 
+    networks:
+      - monitoring_net
+  
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - '/:/host:ro'
+    networks:
+      - monitoring_net
+
+  promtail:
+    image: grafana/promtail
+    user: root
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /home/gautam/Desktop/project/certbot/logs/certbot:/var/log/certbot:ro
+      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - monitoring_net
+
+  loki:
+    image: grafana/loki
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/local-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring_net
+
+  
+
+networks:
+  monitoring_net:
+    driver: bridge
+

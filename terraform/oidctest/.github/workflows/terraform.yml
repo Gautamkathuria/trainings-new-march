@@ -1,0 +1,52 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::831926612453:role/github-terraform-role
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "dev" ]]; then
+            cd terraform/envs/dev
+          elif [[ "${GITHUB_REF_NAME}" == "stage" ]]; then
+            cd terraform/envs/stage
+          else
+            cd terraform/envs/prod
+          fi
+          terraform init
+
+      - name: Terraform Apply
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "dev" ]]; then
+            cd terraform/envs/dev
+          elif [[ "${GITHUB_REF_NAME}" == "stage" ]]; then
+            cd terraform/envs/stage
+          else
+            cd terraform/envs/prod
+          fi
+          terraform apply -auto-approve
+

@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    command: --log_bin_trust_function_creators=1
+    env_file:
+      - ./.env/mysql.env
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - swiss
+
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    env_file:
+      ./.env/server.env
+    depends_on:
+      - mysql
+    ports:
+      - "10051:10051"
+    networks:
+      - swiss
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-mysql:latest
+    container_name: zabbix-web
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    env_file:
+      - ./.env/web.env
+    networks:
+      - swiss
+
+  zabbix-agent2:
+    image: zabbix/zabbix-agent2:latest
+    container_name: zabbix-agent2
+    restart: unless-stopped
+    ports:
+      - "10050:10050"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ./.env/agent.env
+    networks:
+      - swiss
+
+networks:
+  swiss:
+    external: true

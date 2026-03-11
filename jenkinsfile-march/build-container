@@ -1,0 +1,26 @@
+pipeline{
+    agent {label 'linux'}
+
+    stages {
+        stage('clone repository') {
+            steps {
+                echo 'Cloning repository...'
+                git credentialsId: 'github-https-token',
+                url: 'https://github.com/gautamkathuria-sudo/mypipeline.git',
+                branch: 'main'
+            }
+        }
+        stage('build docker image') {
+            steps {
+                echo 'Building docker image...'
+                sh 'docker build -t myapp:latest .'
+            }
+        }
+        stage('build docker container') {
+            steps {
+                echo 'Building docker container...'
+                sh 'docker run -d -p 8082:80 --name myapp2_container myapp:latest'
+            }
+        }
+    }
+}

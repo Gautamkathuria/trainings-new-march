@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                    git branch: 'main',
+                        credentialsId: 'word-test', 
+                        url: 'git@github.com:gautamkathuria-sudo/wp-static-site'
+            }
+        }
+
+        stage('Deploy & Override WordPress') {
+            steps {
+                script {
+                    sh 'cp -f index.html /var/www/html/index.html'
+                    sh 'echo "DirectoryIndex index.html index.php" > /var/www/html/.htaccess'
+                    sh 'chown www-data:www-data /var/www/html/index.html /var/www/html/.htaccess'
+                    echo "SUCCESS: index.html is now the primary page."
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build successful! Your site is live at http://localhost:8081"
+        }
+    }
+}

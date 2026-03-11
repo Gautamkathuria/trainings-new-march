@@ -1,0 +1,83 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "ap-south-1"
+        ACCOUNT_ID = "082447916188"
+        REPO_NAME = "my-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        GITHUB_URL = "https://github.com/Gautamkathuria/my-app.git"
+    }
+
+    stages {
+
+        stage('Clone from GitHub') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'jenkins-auth',
+                    url: "${GITHUB_URL}"
+            }
+        }
+
+        stage('Configure AWS') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                    aws configure set default.region $AWS_REGION
+                    '''
+                }
+            }
+        }
+
+        stage('Create ECR Repo If Not Exists') {
+            steps {
+                sh '''
+                aws ecr describe-repositories --repository-names $REPO_NAME || \
+                aws ecr create-repository --repository-name $REPO_NAME
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                docker build -t $REPO_NAME:$IMAGE_TAG .
+                '''
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        stage('Tag Image') {
+            steps {
+                sh '''
+                docker tag $REPO_NAME:$IMAGE_TAG \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                sh '''
+                docker push \
+                $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+    }
+}
+

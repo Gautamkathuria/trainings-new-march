@@ -1,0 +1,19 @@
+pipeline {
+    agent { label 'linux' }
+    parameters {
+        choice(
+            name: 'container_name',
+            choices: ['myapp_container', 'buildparam_container'],
+            description: 'Select the Docker container to view logs'
+        )
+    }
+    stages {
+        stage('View Docker Logs') {
+            steps {
+                echo "Fetching logs for container: ${params.container_name}"
+                sh "docker logs ${params.container_name}"
+            }
+        }
+    }
+
+}

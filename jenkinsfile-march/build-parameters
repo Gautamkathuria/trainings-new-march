@@ -1,0 +1,39 @@
+pipeline {
+    agent { label 'linux' }
+
+    parameters {
+    string(name: 'branch', defaultValue: 'main', description: 'Enter the branch name')  
+ 
+}
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                echo "Selected branch: ${params.branch}"
+                echo 'Cloning repository...'
+
+                git(
+                    branch: "${params.branch}",
+                    credentialsId: 'github-jenkins',
+                    url: "git@github.com:gautamkathuria-sudo/mypipeline.git"
+                )
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t buildparam:latest .'
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                echo 'Running Docker container...'
+                sh 'docker rm -f buildparam_container || true'
+                sh 'docker run -d -p 8083:80 --name buildparam_container buildparam:latest'
+            }
+        }
+    }
+}

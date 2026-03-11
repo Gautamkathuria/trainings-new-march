@@ -1,0 +1,11 @@
+pipeline {
+    agent { label 'linux' }
+    stages {
+        stage('Clean Docker Space') {
+            steps {
+                echo 'Cleaning up unused Docker images and containers...'
+                sh 'docker system prune -f'
+            }
+        }
+    }
+}

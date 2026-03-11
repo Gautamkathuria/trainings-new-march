@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCOUNT_ID = '831926612453'
+        AWS_REGION     = 'ap-south-1'
+        ECR_REPO_NAME  = 'my-docker-repo'
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        ECR_URL        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        GIT_CRED_ID    = 'git-test' 
+        AWS_CRED_ID    = 'aws-creds' 
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: "${env.GIT_CRED_ID}",
+                    url: 'git@github.com:gautamkathuria-sudo/OIDC.git'
+            }
+        }
+
+        stage('Approval Request') {
+            steps {
+                script {
+                    // Try/Catch added so the whole pipeline doesn't die if mail is misconfigured
+                    try {
+                        def triggerUser = currentBuild.getBuildCauses()[0].shortDescription
+                        mail to: 'gautam.kathuria@oodles.io',
+                             subject: "Approval Required: Docker Build #${env.BUILD_NUMBER}",
+                             body: "Triggered By: ${triggerUser}\nApprove here: ${env.BUILD_URL}"
+                    } catch (Exception e) {
+                        echo "Mail notification failed, but continuing: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Admin Verification') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: "Approve Push to ECR?", 
+                          ok: "Deploy", 
+                          submitter: 'admin' 
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    // Using standard usernamePassword binding
+                    // NOTE: usernameVariable and passwordVariable MUST be different names
+                    withCredentials([usernamePassword(
+                        credentialsId: "${env.AWS_CRED_ID}",
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )]) {
+                        
+                        // Login to ECR
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}"
+                        
+                        // Build
+                        sh "docker build -t ${ECR_REPO_NAME}:${IMAGE_TAG} ."
+                        
+                        // Tag and Push
+                        sh "docker tag ${ECR_REPO_NAME}:${IMAGE_TAG} ${ECR_URL}/${ECR_REPO_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${ECR_URL}/${ECR_REPO_NAME}:${IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleans the workspace to save disk space
+            cleanWs()
+        }
+        success {
+            echo "Successfully pushed ${ECR_REPO_NAME}:${IMAGE_TAG} to ECR."
+        }
+        failure {
+            echo "Pipeline failed. If it's a 'Credentials' error, ensure 'aws-cred' is a 'Username with password' type."
+        }
+    }
+}
